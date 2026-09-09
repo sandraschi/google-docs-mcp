@@ -1,0 +1,78 @@
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+.venv/
+venv/
+env/
+.mypy_cache/
+.pytest_cache/
+.ruff_cache/
+
+# Node / webapp
+node_modules/
+**/node_modules/
+.next/
+*.tsbuildinfo
+webapp/dist/
+webapp/.vite/
+
+# Rust / Tauri (fleet: commonly forgotten!)
+target/
+native/target/
+src-tauri/target/
+web_sota/src-tauri/target/
+gen/
+
+# Build output
+dist/
+build/
+*.spec
+*.exe
+!run_server.py
+*.mcpb
+
+# MCPB pack staging (exact copy of src/ for packing — never commit)
+mcpb/src/
+mcpb/
+
+# Tauri resources (PyInstaller binaries — gitignored, bundled at build)
+native/resources/*.exe
+native/binaries/*.exe
+
+# Data / DB
+data/
+*.db
+*.db-shm
+*.db-wal
+
+# Secrets — Google OAuth credentials and tokens
+.env
+.env.*
+!.env.example
+*.pem
+credentials.json
+client_secret*.json
+token.json
+data/token.json
+
+# OS
+.DS_Store
+Thumbs.db
+
+# IDE
+.idea/
+.vscode/
+
+# Logs
+*.log
+logs/
+
+# Fleet backup artifacts
+*.bak
+*.bak.*
+*.orig
+*.rej
+
+# Docker
+.docker/
