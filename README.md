@@ -1,7 +1,17 @@
 # google-docs-mcp
 
+<p align="center">
+  <a href="https://github.com/casey/just"><img src="https://img.shields.io/badge/just-ready_to_go-7c5cfc?style=flat-square&logo=just&logoColor=white" alt="Just"></a>
+  <a href="https://github.com/astral-sh/ruff"><img src="https://img.shields.io/endpoint?url=https://raw.githubusercontent.com/astral-sh/ruff/main/assets/badge/v2.json" alt="Ruff"></a>
+  <a href="https://python.org"><img src="https://img.shields.io/badge/Python-3.11+-3776AB?style=flat-square&logo=python&logoColor=white" alt="Python"></a>
+  <a href="https://biomejs.dev"><img src="https://img.shields.io/badge/Linted_with-Biome-60a5fa?style=flat-square&logo=biome&logoColor=white" alt="Biome"></a>
+  <a href="https://github.com/PrefectHQ/fastmcp"><img src="https://img.shields.io/badge/FastMCP-3.4.4-7c5cfc?style=flat-square" alt="FastMCP"></a>
+  <a href="https://opensource.org/licenses/MIT"><img src="https://img.shields.io/badge/License-MIT-yellow.svg?style=flat-square" alt="MIT"></a>
+</p>
+
 Real Google Docs editing and Google Drive file management for Claude — create, read, and edit
-document content, then share, organize, and comment on the files, all through MCP tool calls.
+document content, browse/backup/restore whole folders, keep a local folder synced two-way with
+Drive, and convert to formats Drive's own export can't produce, all through MCP tool calls.
 
 ## What this wraps
 
@@ -24,9 +34,17 @@ control — no data passes through a fleet-operated server.
 - Create, read, and edit Google Docs content (text, styles, tables, page breaks)
 - Full find/replace and raw `batchUpdate` escape hatch for anything not wrapped explicitly
 - Search, list, move, copy, rename, trash, and permanently delete Drive files
+- Browse Drive folder structure with breadcrumbs, back up a whole folder to local files, and
+  restore an existing doc's content from a local backup copy
+- Export to PDF/DOCX/ODT/TXT/HTML/RTF natively, or bridge to a sibling libreoffice-mcp server
+  for formats Drive's own export can't produce (legacy `.doc`, flat-XML `.fodt`)
+- Keep a local folder two-way synced with a Drive folder on a polling interval — like OneDrive
+  Desktop, with conflicts always preserved (never silently overwritten)
 - Share documents and manage permissions by email + role
 - Read, add, reply to, and resolve Drive comment threads
-- Paginated listing for files, revisions, and comments (cursor-based)
+- Paginated listing for files, revisions, comments, and folder contents (cursor-based)
+- Optional webapp dashboard: folder browser, backup/restore panel, sync configuration/status,
+  onboarding wizard, and an in-chat Prefab UI status card for OAuth/sync/folder state
 
 ## Quick Install
 
@@ -62,6 +80,9 @@ OAuth client before expecting live calls to work.
 - "Find my 'Meeting Notes' doc and replace every '{{date}}' with today's date."
 - "Share the 'Budget 2026' doc with sandra@example.com as a commenter."
 - "List the last 10 documents I edited in Drive."
+- "Back up everything in my 'Contracts' folder to C:/Backups/Contracts as Word docs."
+- "Sync my 'Reports' Drive folder to a local folder and check every 10 minutes."
+- "Convert my 'Old Contract' doc to legacy .doc format for a client who needs that."
 
 ## Documentation
 
