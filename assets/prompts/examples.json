@@ -1173,6 +1173,182 @@
     }
   },
   {
+    "name": "drive-browse-root",
+    "description": "Browse the top level of Drive like a folder tree",
+    "prompt": "Show me the folders in my Google Drive.",
+    "tool": "google_drive",
+    "arguments": {
+      "operation": "browse"
+    }
+  },
+  {
+    "name": "drive-browse-subfolder",
+    "description": "Navigate into a specific folder",
+    "prompt": "Open my 'Contracts' folder and show what's inside.",
+    "tool": "google_drive",
+    "arguments": {
+      "operation": "browse",
+      "folder_id": "1ContractsFolderId"
+    }
+  },
+  {
+    "name": "drive-backup-folder-basic",
+    "description": "Back up every doc in a folder to a local folder",
+    "prompt": "Back up everything in my 'Contracts' folder to C:/Users/me/Backups/Contracts.",
+    "tool": "google_drive",
+    "arguments": {
+      "operation": "backup_folder",
+      "folder_id": "1ContractsFolderId",
+      "output_dir": "C:/Users/me/Backups/Contracts"
+    }
+  },
+  {
+    "name": "drive-backup-folder-recursive",
+    "description": "Back up a folder including its subfolders",
+    "prompt": "Back up my whole 'Projects' folder, including subfolders, as Word docs.",
+    "tool": "google_drive",
+    "arguments": {
+      "operation": "backup_folder",
+      "folder_id": "1ProjectsFolderId",
+      "output_dir": "C:/Users/me/Backups/Projects",
+      "export_format": "docx",
+      "recursive": true
+    }
+  },
+  {
+    "name": "drive-restore-file-basic",
+    "description": "Overwrite a Google Doc's content from a local file",
+    "prompt": "Restore my 'Contract' doc from the backup copy at C:/Backups/Contract.docx.",
+    "tool": "google_drive",
+    "arguments": {
+      "operation": "restore_file",
+      "file_id": "1ContractDocId",
+      "file_path": "C:/Backups/Contract.docx"
+    }
+  },
+  {
+    "name": "drive-restore-file-after-mistake",
+    "description": "Undo a bad edit by restoring from a known-good local copy",
+    "prompt": "I messed up my 'Budget' doc — restore it from yesterday's backup file.",
+    "tool": "google_drive",
+    "arguments": {
+      "operation": "restore_file",
+      "file_id": "1BudgetDocId",
+      "file_path": "C:/Users/me/Backups/Budget-2026-09-09.docx"
+    }
+  },
+  {
+    "name": "convert-advanced-to-doc",
+    "description": "Convert a Google Doc to legacy .doc format via LibreOffice",
+    "prompt": "Convert my 'Old Contract' doc to a legacy .doc file for a client who needs that format.",
+    "tool": "google_docs_convert_advanced",
+    "arguments": {
+      "file_id": "1OldContractId",
+      "output_format": "doc",
+      "output_path": "C:/Users/me/Downloads/Old Contract.doc"
+    }
+  },
+  {
+    "name": "convert-advanced-to-rtf",
+    "description": "Convert a Google Doc to RTF",
+    "prompt": "I need my 'Cover Letter' as an RTF file for an old application system.",
+    "tool": "google_docs_convert_advanced",
+    "arguments": {
+      "file_id": "1CoverLetterId",
+      "output_format": "rtf",
+      "output_path": "C:/Users/me/Downloads/Cover Letter.rtf"
+    }
+  },
+  {
+    "name": "convert-advanced-to-fodt",
+    "description": "Convert a Google Doc to flat OpenDocument text",
+    "prompt": "Export my 'Report' as a flat ODT (fodt) file.",
+    "tool": "google_docs_convert_advanced",
+    "arguments": {
+      "file_id": "1ReportId",
+      "output_format": "fodt",
+      "output_path": "C:/Users/me/Downloads/Report.fodt"
+    }
+  },
+  {
+    "name": "convert-advanced-dependency-check",
+    "description": "Attempt a conversion that needs libreoffice-mcp running",
+    "prompt": "Convert my 'Memo' doc to .doc format.",
+    "tool": "google_docs_convert_advanced",
+    "arguments": {
+      "file_id": "1MemoId",
+      "output_format": "doc",
+      "output_path": "C:/Users/me/Downloads/Memo.doc"
+    }
+  },
+  {
+    "name": "sync-configure-basic",
+    "description": "Set up a local folder mirror of a Drive folder",
+    "prompt": "Sync my 'Reports' Drive folder to C:/Users/me/GoogleDocsSync every 10 minutes.",
+    "tool": "google_docs_sync",
+    "arguments": {
+      "operation": "configure",
+      "local_dir": "C:/Users/me/GoogleDocsSync",
+      "folder_id": "1ReportsFolderId",
+      "interval_seconds": 600
+    }
+  },
+  {
+    "name": "sync-configure-whole-drive",
+    "description": "Sync all of Drive, not just one folder",
+    "prompt": "Mirror my whole Google Drive to a local folder called GoogleDocsSync.",
+    "tool": "google_docs_sync",
+    "arguments": {
+      "operation": "configure",
+      "local_dir": "C:/Users/me/GoogleDocsSync"
+    }
+  },
+  {
+    "name": "sync-enable-basic",
+    "description": "Turn on background polling after configuring sync",
+    "prompt": "Start syncing now.",
+    "tool": "google_docs_sync",
+    "arguments": {
+      "operation": "enable"
+    }
+  },
+  {
+    "name": "sync-disable-basic",
+    "description": "Pause background sync without losing its configuration",
+    "prompt": "Pause the folder sync for now, I don't need it running.",
+    "tool": "google_docs_sync",
+    "arguments": {
+      "operation": "disable"
+    }
+  },
+  {
+    "name": "sync-run-once-basic",
+    "description": "Trigger one sync pass immediately instead of waiting",
+    "prompt": "Run the sync right now, don't wait for the next interval.",
+    "tool": "google_docs_sync",
+    "arguments": {
+      "operation": "run_once"
+    }
+  },
+  {
+    "name": "sync-status-basic",
+    "description": "Check whether background sync is active and what's tracked",
+    "prompt": "Is my Drive sync running? How many docs does it track?",
+    "tool": "google_docs_sync",
+    "arguments": {
+      "operation": "status"
+    }
+  },
+  {
+    "name": "sync-status-after-conflict",
+    "description": "Check sync status after suspecting a conflict",
+    "prompt": "I edited a file both locally and in Google Docs — what did the sync do about it?",
+    "tool": "google_docs_sync",
+    "arguments": {
+      "operation": "status"
+    }
+  },
+  {
     "name": "workflow-onboarding-first-doc",
     "description": "First document created right after onboarding completes",
     "prompt": "Now that I'm connected, create a test doc to make sure everything works.",

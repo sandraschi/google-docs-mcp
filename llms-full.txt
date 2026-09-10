@@ -67,9 +67,49 @@ Drive API v3 file lifecycle. Operations:
   (10 MB Drive API export limit)
 - `import_file(file_path, name?, folder_id?)` — upload a local .docx/.odt/.txt/.md/.html/.rtf and
   convert it into a new Google Doc
+- `browse(folder_id?)` — folders + Google Docs directly inside `folder_id` (Drive root if
+  omitted), plus breadcrumbs back to root
+- `backup_folder(output_dir, folder_id?, export_format="pdf", recursive=False)` — exports every
+  doc in a folder to local files, writes a `manifest.json` (`{doc_id, name, local_path,
+  modified_time}` per file)
+- `restore_file(file_id, file_path)` — overwrites an **existing** Google Doc's content from a
+  local file (the inverse of `export`/`import_file`, which always create new docs)
 
 Pagination: paginated operations return `{items, has_more, next_cursor}` inside `data` — pass
 `next_cursor` back as `cursor` to continue.
+
+### google_docs_convert_advanced(file_id, output_format, output_path)
+
+Bridges to a sibling **libreoffice-mcp** server via a real MCP client call (FastMCP `Client`,
+not a subprocess) for output formats Drive's native `export` can't produce: `doc`, `fodt`,
+`rtf` (plus `odt`, `txt`, `pdf`, `html`, which Drive can already do — routed through
+LibreOffice anyway for a single consistent code path). Exports the doc to a temp docx via
+`google_drive(operation="export")` first, then calls libreoffice-mcp's `libreoffice(operation=
+"convert")`. If libreoffice-mcp isn't reachable at `LIBREOFFICE_MCP_URL` (default
+`http://127.0.0.1:10981/mcp`), returns `error_type: "dependency_unavailable"` — distinct from
+this server's own `not_configured`/`not_authenticated`.
+
+### google_docs_sync(operation, ...)
+
+Polling two-way sync between a local folder and a Drive folder — like OneDrive Desktop, but
+checked on an interval rather than pushed instantly (no public HTTPS endpoint for Google's
+`files.watch` push notifications is realistic for a local desktop app). Operations:
+
+- `configure(local_dir, folder_id?, interval_seconds=300, export_format="docx")` — sets up (or
+  replaces) the pair; does not itself start background polling
+- `status()` — current config, whether background polling is active, tracked doc count
+- `run_once()` — synchronous single reconcile pass, returns `{pulled, pushed, conflicts,
+  remote_deleted, untracked_missing_local, errors, ran_at}`
+- `enable()` / `disable()` — toggle background polling at `interval_seconds` (min 60); config
+  and manifest are kept across `disable`, not deleted
+
+Safety defaults: a doc changed on **both** sides since the last sync is a conflict (local edit
+renamed with a timestamp suffix and kept, Drive's version becomes canonical — never silently
+overwritten); a doc trashed on Drive moves the local file to a `_remote_deleted/` subfolder
+(never hard-deleted); a file deleted locally self-heals by being re-pulled next pass (Drive is
+authoritative, a local `rm` never cascades into deleting the Drive doc). The Starlette backend
+runs this on a background `asyncio` task alongside its own lifespan, polling every
+`interval_seconds` while `enabled`; a failed pass is logged and never kills the loop.
 
 ### google_docs_mcp_help()
 
@@ -125,6 +165,9 @@ This is the only correct flow for a process that is not itself a public web serv
 | `GOOGLE_DOCS_MCP_HOST` | `127.0.0.1` | webapp backend bind host |
 | `GOOGLE_DOCS_MCP_PORT` | `11972` | webapp backend bind port |
 | `GOOGLE_DOCS_MCP_PREFAB_APPS` | `1` | set `0` to skip registering Prefab App tools |
+| `LIBREOFFICE_MCP_URL` | `http://127.0.0.1:10981/mcp` | libreoffice-mcp endpoint for `google_docs_convert_advanced` |
+| `GOOGLE_DOCS_MCP_SYNC_CONFIG_PATH` | `<repo>/data/sync_config.json` | sync config location |
+| `GOOGLE_DOCS_MCP_SYNC_MANIFEST_PATH` | `<repo>/data/sync_manifest.json` | sync manifest location |
 
 ## Onboarding summary
 

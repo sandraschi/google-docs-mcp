@@ -4,6 +4,7 @@ import {
   ChevronRight,
   Circle,
   FileText,
+  FolderSync,
   HelpCircle,
   LayoutDashboard,
   LayoutGrid,
@@ -19,6 +20,7 @@ import { api } from "./lib/api";
 const NAV = [
   { to: "/", label: "Dashboard", icon: LayoutDashboard },
   { to: "/documents", label: "Documents", icon: FileText },
+  { to: "/sync", label: "Sync", icon: FolderSync },
   { to: "/tools", label: "Tools", icon: Wrench },
   { to: "/skills", label: "Skills", icon: BookOpen },
   { to: "/chat", label: "Chat", icon: MessageSquare },

@@ -59,9 +59,89 @@ export type DriveResult = {
   data?: { items: DriveFile[]; has_more: boolean; next_cursor: string | null };
 };
 
+export type Breadcrumb = { id: string; name: string };
+
+export type BrowseResult = {
+  success: boolean;
+  error?: string;
+  error_type?: string;
+  message?: string;
+  data?: {
+    folder: { id: string; name: string } | null;
+    breadcrumbs: Breadcrumb[];
+    folders: DriveFile[];
+    files: DriveFile[];
+  };
+};
+
+export type BackupResult = {
+  success: boolean;
+  error?: string;
+  error_type?: string;
+  message?: string;
+  data?: {
+    output_dir: string;
+    files: {
+      doc_id: string;
+      name: string;
+      local_path: string;
+      modified_time?: string;
+    }[];
+    errors: { name: string; error: string }[];
+  };
+};
+
+export type ToolResult = {
+  success: boolean;
+  error?: string;
+  error_type?: string;
+  message?: string;
+  data?: Record<string, unknown>;
+};
+
+export type SyncConfigData = {
+  enabled: boolean;
+  local_dir: string | null;
+  folder_id: string | null;
+  interval_seconds: number;
+  export_format: string;
+};
+
+export type SyncPassResult = {
+  pulled: string[];
+  pushed: string[];
+  conflicts: string[];
+  remote_deleted: string[];
+  untracked_missing_local: string[];
+  errors: { name: string; error: string }[];
+  ran_at: string;
+};
+
+export type SyncStatusResult = {
+  success: boolean;
+  error?: string;
+  error_type?: string;
+  message?: string;
+  data?: {
+    config: SyncConfigData;
+    tracked_count: number;
+    last_run: SyncPassResult | null;
+    last_error: string | null;
+  };
+};
+
 async function getJson<T>(path: string): Promise<T> {
   const res = await fetch(`${API_BASE}${path}`);
   if (!res.ok) throw new Error(`${path} -> ${res.status}`);
+  return res.json() as Promise<T>;
+}
+
+async function postJson<T>(path: string, body?: unknown): Promise<T> {
+  const res = await fetch(`${API_BASE}${path}`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(body ?? {}),
+  });
   return res.json() as Promise<T>;
 }
 
@@ -86,4 +166,33 @@ export const api = {
       `/api/documents${query ? `?query=${encodeURIComponent(query)}` : ""}`,
     ),
   apps: () => getJson<{ available: boolean; items: FleetApp[] }>("/api/apps"),
+  browse: (folderId?: string) =>
+    getJson<BrowseResult>(
+      `/api/documents/browse${folderId ? `?folder_id=${encodeURIComponent(folderId)}` : ""}`,
+    ),
+  backupFolder: (body: {
+    folder_id: string | null;
+    output_dir: string;
+    export_format: string;
+    recursive: boolean;
+  }) => postJson<BackupResult>("/api/documents/backup", body),
+  restoreFile: (fileId: string, filePath: string) =>
+    postJson<ToolResult>(`/api/documents/${fileId}/restore`, {
+      file_path: filePath,
+    }),
+  convertAdvanced: (fileId: string, outputFormat: string, outputPath: string) =>
+    postJson<ToolResult>(`/api/documents/${fileId}/convert-advanced`, {
+      output_format: outputFormat,
+      output_path: outputPath,
+    }),
+  syncStatus: () => getJson<SyncStatusResult>("/api/sync/status"),
+  syncConfigure: (body: {
+    local_dir: string;
+    folder_id?: string | null;
+    interval_seconds: number;
+    export_format: string;
+  }) => postJson<SyncStatusResult>("/api/sync/configure", body),
+  syncEnable: () => postJson<SyncStatusResult>("/api/sync/enable"),
+  syncDisable: () => postJson<SyncStatusResult>("/api/sync/disable"),
+  syncRunOnce: () => postJson<SyncStatusResult>("/api/sync/run-once"),
 };

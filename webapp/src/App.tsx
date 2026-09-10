@@ -9,6 +9,7 @@ import Logs from "./pages/Logs";
 import Onboarding from "./pages/Onboarding";
 import SettingsPage from "./pages/Settings";
 import Skills from "./pages/Skills";
+import Sync from "./pages/Sync";
 import Tools from "./pages/Tools";
 
 export default function App() {
@@ -18,6 +19,7 @@ export default function App() {
         <Route element={<Layout />}>
           <Route index element={<Dashboard />} />
           <Route path="documents" element={<Documents />} />
+          <Route path="sync" element={<Sync />} />
           <Route path="tools" element={<Tools />} />
           <Route path="skills" element={<Skills />} />
           <Route path="chat" element={<Chat />} />

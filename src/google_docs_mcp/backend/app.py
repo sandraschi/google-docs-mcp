@@ -15,6 +15,7 @@ engine only; add cloud providers as a follow-up if the webapp gets real usage.
 from __future__ import annotations
 
 import asyncio
+import contextlib
 import logging
 import re
 import tempfile
@@ -33,8 +34,14 @@ from starlette.routing import Mount, Route
 
 from google_docs_mcp import __version__, oauth
 from google_docs_mcp.config import settings
+from google_docs_mcp.google_client import get_drive_service
+from google_docs_mcp.oauth import NotAuthenticatedError, NotConfiguredError
 from google_docs_mcp.server import mcp, mcp_http_app
+from google_docs_mcp.sync_engine import load_config as load_sync_config
+from google_docs_mcp.sync_engine import run_sync_pass
 from google_docs_mcp.tools.drive_tool import _EXPORT_MIME_MAP, google_drive
+from google_docs_mcp.tools.libreoffice_tool import google_docs_convert_advanced
+from google_docs_mcp.tools.sync_tool import google_docs_sync, sync_config_path, sync_manifest_path
 
 logger = logging.getLogger("google_docs_mcp.backend")
 
@@ -54,6 +61,12 @@ _LOG_BUFFER: list[str] = []
 # explicitly-labeled list rather than erroring — see api_apps().
 _WEBAPP_PORTS_MD = Path(__file__).resolve().parents[4] / "mcp-central-docs" / "operations" / "WEBAPP_PORTS.md"
 _PORT_ROW_RE = re.compile(r"^\|\s*(\d{4,5})\s*\|\s*([\w.-]+)\s*\|\s*(.*?)\s*\|\s*$")
+
+# Last background/manual sync pass result, kept in memory for the Sync page's
+# status display — not persisted (the manifest itself is the durable state;
+# this is just "what happened most recently" for the UI).
+_last_sync_result: dict[str, Any] | None = None
+_last_sync_error: str | None = None
 
 
 class BufferLogHandler(logging.Handler):
@@ -279,6 +292,46 @@ async def api_documents(request: Request) -> JSONResponse:
     return JSONResponse(result)
 
 
+async def api_documents_browse(request: Request) -> JSONResponse:
+    """Folder-aware listing for the Documents page's folder navigator."""
+    folder_id = request.query_params.get("folder_id") or None
+    result = await google_drive(operation="browse", folder_id=folder_id)
+    return JSONResponse(result)
+
+
+async def api_documents_backup(request: Request) -> JSONResponse:
+    body = await request.json()
+    result = await google_drive(
+        operation="backup_folder",
+        folder_id=body.get("folder_id"),
+        output_dir=body.get("output_dir"),
+        export_format=body.get("export_format", "pdf"),
+        recursive=bool(body.get("recursive", False)),
+    )
+    status = 200 if result.get("success") else 400
+    return JSONResponse(result, status_code=status)
+
+
+async def api_document_restore(request: Request) -> JSONResponse:
+    file_id = request.path_params["file_id"]
+    body = await request.json()
+    result = await google_drive(operation="restore_file", file_id=file_id, file_path=body.get("file_path"))
+    status = 200 if result.get("success") else 400
+    return JSONResponse(result, status_code=status)
+
+
+async def api_document_convert_advanced(request: Request) -> JSONResponse:
+    file_id = request.path_params["file_id"]
+    body = await request.json()
+    result = await google_docs_convert_advanced(
+        file_id=file_id,
+        output_format=body.get("output_format", "doc"),
+        output_path=body.get("output_path", ""),
+    )
+    status = 200 if result.get("success") else 400
+    return JSONResponse(result, status_code=status)
+
+
 async def api_document_export(request: Request) -> Response:
     """Stream a Google Doc export straight to the browser as a download.
 
@@ -379,6 +432,95 @@ async def api_logs(_request: Request) -> JSONResponse:
     return JSONResponse({"items": _LOG_BUFFER[-200:]})
 
 
+async def api_sync_status(_request: Request) -> JSONResponse:
+    result = await google_docs_sync(operation="status")
+    result["data"]["last_run"] = _last_sync_result
+    result["data"]["last_error"] = _last_sync_error
+    return JSONResponse(result)
+
+
+async def api_sync_configure(request: Request) -> JSONResponse:
+    body = await request.json()
+    result = await google_docs_sync(
+        operation="configure",
+        local_dir=body.get("local_dir"),
+        folder_id=body.get("folder_id"),
+        interval_seconds=int(body.get("interval_seconds", 300)),
+        export_format=body.get("export_format", "docx"),
+    )
+    status = 200 if result.get("success") else 400
+    return JSONResponse(result, status_code=status)
+
+
+async def api_sync_enable(_request: Request) -> JSONResponse:
+    result = await google_docs_sync(operation="enable")
+    status = 200 if result.get("success") else 400
+    return JSONResponse(result, status_code=status)
+
+
+async def api_sync_disable(_request: Request) -> JSONResponse:
+    result = await google_docs_sync(operation="disable")
+    return JSONResponse(result)
+
+
+async def api_sync_run_once(_request: Request) -> JSONResponse:
+    global _last_sync_result, _last_sync_error
+    result = await google_docs_sync(operation="run_once")
+    if result.get("success"):
+        _last_sync_result = result["data"]
+        _last_sync_error = None
+    else:
+        _last_sync_error = result.get("error")
+    status = 200 if result.get("success") else 400
+    return JSONResponse(result, status_code=status)
+
+
+async def _background_sync_pass() -> None:
+    """One pass on the background poll timer — never raises, always logged."""
+    global _last_sync_result, _last_sync_error
+    config = load_sync_config(sync_config_path())
+    if not config.enabled or not config.local_dir:
+        return
+    try:
+        service = get_drive_service()
+    except (NotConfiguredError, NotAuthenticatedError):
+        return  # not ready yet — silently skip until the user finishes onboarding
+    try:
+        result = await run_sync_pass(
+            service,
+            local_dir=Path(config.local_dir),
+            folder_id=config.folder_id,
+            manifest_path=sync_manifest_path(),
+            export_format=config.export_format,
+        )
+        _last_sync_result = result.as_dict()
+        _last_sync_error = None
+        logger.info("Background sync pass: %s", _last_sync_result)
+    except Exception as exc:  # a bad pass must never kill the loop
+        _last_sync_error = str(exc)
+        logger.exception("Background sync pass failed")
+
+
+async def _sync_loop() -> None:
+    while True:
+        await _background_sync_pass()
+        config = load_sync_config(sync_config_path())
+        interval = max(60, config.interval_seconds)
+        await asyncio.sleep(interval)
+
+
+@contextlib.asynccontextmanager
+async def lifespan(app: Starlette):
+    async with mcp_http_app.lifespan(app):
+        task = asyncio.create_task(_sync_loop())
+        try:
+            yield
+        finally:
+            task.cancel()
+            with contextlib.suppress(asyncio.CancelledError):
+                await task
+
+
 app = Starlette(
     routes=[
         Route("/api/health", api_health),
@@ -396,15 +538,25 @@ app = Starlette(
         Route("/api/llm/models", api_llm_models),
         Route("/api/llm/chat", api_llm_chat, methods=["POST"]),
         Route("/api/documents", api_documents),
+        Route("/api/documents/browse", api_documents_browse),
+        Route("/api/documents/backup", api_documents_backup, methods=["POST"]),
         Route("/api/documents/import", api_document_import, methods=["POST"]),
         Route("/api/documents/{file_id}/export", api_document_export),
+        Route("/api/documents/{file_id}/restore", api_document_restore, methods=["POST"]),
+        Route("/api/documents/{file_id}/convert-advanced", api_document_convert_advanced, methods=["POST"]),
         Route("/api/apps", api_apps),
         Route("/api/logs", api_logs),
+        Route("/api/sync/status", api_sync_status),
+        Route("/api/sync/configure", api_sync_configure, methods=["POST"]),
+        Route("/api/sync/enable", api_sync_enable, methods=["POST"]),
+        Route("/api/sync/disable", api_sync_disable, methods=["POST"]),
+        Route("/api/sync/run-once", api_sync_run_once, methods=["POST"]),
         Mount("/mcp", app=mcp_http_app),
     ],
-    # StreamableHTTPSessionManager lifespan MUST be forwarded to the parent app
-    # (fastmcp 3.4.4 lifespan pitfall — see fastmcp/3.4-features.md).
-    lifespan=mcp_http_app.lifespan,
+    # Our own lifespan wraps mcp_http_app's (StreamableHTTPSessionManager lifespan
+    # MUST still be forwarded to the parent app — fastmcp 3.4.4 lifespan pitfall,
+    # see fastmcp/3.4-features.md) AND starts/stops the background sync poll loop.
+    lifespan=lifespan,
     middleware=[
         Middleware(
             CORSMiddleware,

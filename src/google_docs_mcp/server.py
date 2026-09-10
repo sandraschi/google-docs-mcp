@@ -23,7 +23,9 @@ from google_docs_mcp.tools.auth_tool import google_docs_auth
 from google_docs_mcp.tools.docs_tool import google_docs
 from google_docs_mcp.tools.drive_tool import google_drive
 from google_docs_mcp.tools.help_tool import google_docs_mcp_help
+from google_docs_mcp.tools.libreoffice_tool import google_docs_convert_advanced
 from google_docs_mcp.tools.status_app import show_google_docs_status_app
+from google_docs_mcp.tools.sync_tool import google_docs_sync
 
 logger = logging.getLogger("google_docs_mcp")
 
@@ -54,6 +56,8 @@ mcp.tool()(google_docs_auth)
 mcp.tool()(google_docs)
 mcp.tool()(google_drive)
 mcp.tool()(google_docs_mcp_help)
+mcp.tool()(google_docs_convert_advanced)
+mcp.tool()(google_docs_sync)
 mcp.tool(app=True)(show_google_docs_status_app)
 
 _skills_dir = Path(__file__).resolve().parent / "skills"

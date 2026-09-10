@@ -30,6 +30,7 @@ test("all sidebar nav routes render without 404s or console errors", async ({
   const routes = [
     ["dashboard-page", "#/"],
     ["documents-page", "#/documents"],
+    ["sync-page", "#/sync"],
     ["tools-page", "#/tools"],
     ["skills-page", "#/skills"],
     ["chat-page", "#/chat"],

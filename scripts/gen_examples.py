@@ -374,6 +374,72 @@ add("drive-import-txt-named", "Import a plain text file with a custom document t
     "google_drive", {"operation": "import_file", "file_path": "C:/Users/me/Desktop/draft.txt",
                       "name": "First Draft — Chapter 1"})
 
+# --- google_drive: browse / backup_folder / restore_file (6) ---
+add("drive-browse-root", "Browse the top level of Drive like a folder tree",
+    "Show me the folders in my Google Drive.", "google_drive", {"operation": "browse"})
+add("drive-browse-subfolder", "Navigate into a specific folder",
+    "Open my 'Contracts' folder and show what's inside.", "google_drive",
+    {"operation": "browse", "folder_id": "1ContractsFolderId"})
+add("drive-backup-folder-basic", "Back up every doc in a folder to a local folder",
+    "Back up everything in my 'Contracts' folder to C:/Users/me/Backups/Contracts.",
+    "google_drive", {"operation": "backup_folder", "folder_id": "1ContractsFolderId",
+                      "output_dir": "C:/Users/me/Backups/Contracts"})
+add("drive-backup-folder-recursive", "Back up a folder including its subfolders",
+    "Back up my whole 'Projects' folder, including subfolders, as Word docs.",
+    "google_drive", {"operation": "backup_folder", "folder_id": "1ProjectsFolderId",
+                      "output_dir": "C:/Users/me/Backups/Projects", "export_format": "docx",
+                      "recursive": True})
+add("drive-restore-file-basic", "Overwrite a Google Doc's content from a local file",
+    "Restore my 'Contract' doc from the backup copy at C:/Backups/Contract.docx.",
+    "google_drive", {"operation": "restore_file", "file_id": "1ContractDocId",
+                      "file_path": "C:/Backups/Contract.docx"})
+add("drive-restore-file-after-mistake", "Undo a bad edit by restoring from a known-good local copy",
+    "I messed up my 'Budget' doc — restore it from yesterday's backup file.",
+    "google_drive", {"operation": "restore_file", "file_id": "1BudgetDocId",
+                      "file_path": "C:/Users/me/Backups/Budget-2026-09-09.docx"})
+
+# --- google_docs_convert_advanced (4) ---
+add("convert-advanced-to-doc", "Convert a Google Doc to legacy .doc format via LibreOffice",
+    "Convert my 'Old Contract' doc to a legacy .doc file for a client who needs that format.",
+    "google_docs_convert_advanced", {"file_id": "1OldContractId", "output_format": "doc",
+                                      "output_path": "C:/Users/me/Downloads/Old Contract.doc"})
+add("convert-advanced-to-rtf", "Convert a Google Doc to RTF",
+    "I need my 'Cover Letter' as an RTF file for an old application system.",
+    "google_docs_convert_advanced", {"file_id": "1CoverLetterId", "output_format": "rtf",
+                                      "output_path": "C:/Users/me/Downloads/Cover Letter.rtf"})
+add("convert-advanced-to-fodt", "Convert a Google Doc to flat OpenDocument text",
+    "Export my 'Report' as a flat ODT (fodt) file.", "google_docs_convert_advanced",
+    {"file_id": "1ReportId", "output_format": "fodt",
+     "output_path": "C:/Users/me/Downloads/Report.fodt"})
+add("convert-advanced-dependency-check", "Attempt a conversion that needs libreoffice-mcp running",
+    "Convert my 'Memo' doc to .doc format.", "google_docs_convert_advanced",
+    {"file_id": "1MemoId", "output_format": "doc",
+     "output_path": "C:/Users/me/Downloads/Memo.doc"})
+
+# --- google_docs_sync (7) ---
+add("sync-configure-basic", "Set up a local folder mirror of a Drive folder",
+    "Sync my 'Reports' Drive folder to C:/Users/me/GoogleDocsSync every 10 minutes.",
+    "google_docs_sync", {"operation": "configure", "local_dir": "C:/Users/me/GoogleDocsSync",
+                          "folder_id": "1ReportsFolderId", "interval_seconds": 600})
+add("sync-configure-whole-drive", "Sync all of Drive, not just one folder",
+    "Mirror my whole Google Drive to a local folder called GoogleDocsSync.",
+    "google_docs_sync", {"operation": "configure",
+                          "local_dir": "C:/Users/me/GoogleDocsSync"})
+add("sync-enable-basic", "Turn on background polling after configuring sync",
+    "Start syncing now.", "google_docs_sync", {"operation": "enable"})
+add("sync-disable-basic", "Pause background sync without losing its configuration",
+    "Pause the folder sync for now, I don't need it running.", "google_docs_sync",
+    {"operation": "disable"})
+add("sync-run-once-basic", "Trigger one sync pass immediately instead of waiting",
+    "Run the sync right now, don't wait for the next interval.", "google_docs_sync",
+    {"operation": "run_once"})
+add("sync-status-basic", "Check whether background sync is active and what's tracked",
+    "Is my Drive sync running? How many docs does it track?", "google_docs_sync",
+    {"operation": "status"})
+add("sync-status-after-conflict", "Check sync status after suspecting a conflict",
+    "I edited a file both locally and in Google Docs — what did the sync do about it?",
+    "google_docs_sync", {"operation": "status"})
+
 add("workflow-onboarding-first-doc", "First document created right after onboarding completes",
     "Now that I'm connected, create a test doc to make sure everything works.", "google_docs",
     {"operation": "create", "title": "onboarding-test"})

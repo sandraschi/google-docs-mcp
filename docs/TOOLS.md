@@ -56,6 +56,46 @@ Google Drive API v3 file lifecycle.
 | `resolve_comment` | `file_id`, `comment_id` | — |
 | `export` | `file_id`, `output_path` | `export_format` (pdf/docx/odt/txt/html/rtf/epub, default pdf) |
 | `import_file` | `file_path` | `name`, `folder_id` |
+| `browse` | — | `folder_id` (Drive root if omitted) — folders + docs directly inside, plus breadcrumbs |
+| `backup_folder` | `output_dir` | `folder_id`, `export_format` (default pdf), `recursive` — exports every doc in a folder to local files + writes `manifest.json` |
+| `restore_file` | `file_id`, `file_path` | — overwrites an **existing** Google Doc's content from a local file (inverse of `export`/`import_file`, which create new docs) |
+
+## `google_docs_convert_advanced(file_id, output_format, output_path)`
+
+Bridges to [libreoffice-mcp](../../libreoffice-mcp) via a real MCP client call for output formats
+Google Drive's native `export` can't produce (`doc`, `fodt`, `rtf`). Exports the doc to a temp
+docx via `google_drive(operation="export")`, then calls libreoffice-mcp's `convert` operation.
+Returns `error_type: "dependency_unavailable"` (distinct from this server's own
+`not_configured`/`not_authenticated`) when libreoffice-mcp isn't reachable at
+`LIBREOFFICE_MCP_URL` (default `http://127.0.0.1:10981/mcp`).
+
+| Param | Required | Notes |
+|---|---|---|
+| `file_id` | Yes | Google Doc to convert |
+| `output_format` | Yes | One of `doc`, `fodt`, `rtf`, `odt`, `txt`, `pdf`, `html` |
+| `output_path` | Yes | Local destination for the converted file |
+
+## `google_docs_sync(operation, ...)`
+
+Configure, inspect, or manually trigger a polling two-way sync between a local folder and a
+Drive folder — like OneDrive Desktop, but checked on an interval rather than pushed instantly.
+See [`sync_engine.py`](../src/google_docs_mcp/sync_engine.py) for the reconcile algorithm and
+its safety defaults (conflicts never silently overwritten, remote deletes never delete local
+files, local deletes never trash remote docs).
+
+| operation | Required params | Optional params |
+|---|---|---|
+| `configure` | `local_dir` | `folder_id` (Drive root if omitted), `interval_seconds` (default 300, min 60), `export_format` (docx/odt/txt/html, default docx) |
+| `status` | — | Current config, whether background polling is active, tracked doc count |
+| `run_once` | — | Runs exactly one reconcile pass synchronously, returns what happened |
+| `enable` | — | Turns on background polling at `interval_seconds` (requires `configure` first) |
+| `disable` | — | Turns off background polling (config and manifest are kept, not deleted) |
+
+Polling is **not** instant — changes appear after the next pass, at most `interval_seconds`
+later. A file deleted locally does not delete the Drive document (self-heals by re-pull next
+pass); a document trashed on Drive does not delete the local file (moved to `_remote_deleted/`
+instead); a file changed on both sides is a conflict (local edit renamed with a timestamp
+suffix and kept, Drive's version becomes canonical).
 
 ## `google_docs_mcp_help()`
 

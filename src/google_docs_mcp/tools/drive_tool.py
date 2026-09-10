@@ -10,9 +10,13 @@ boundary, per TOOL_DESIGN_STANDARDS.md §1.
 
 from __future__ import annotations
 
+import json
+import re
+from datetime import UTC, datetime
 from pathlib import Path
 from typing import Annotated, Any, Literal
 
+from googleapiclient.discovery import Resource
 from googleapiclient.errors import HttpError
 from googleapiclient.http import MediaFileUpload
 from pydantic import Field
@@ -41,6 +45,9 @@ DriveOperation = Literal[
     "resolve_comment",
     "export",
     "import_file",
+    "browse",
+    "backup_folder",
+    "restore_file",
 ]
 
 GOOGLE_DOC_MIME = "application/vnd.google-apps.document"
@@ -89,6 +96,62 @@ def _not_ready(exc: NotConfiguredError | NotAuthenticatedError) -> dict[str, Any
             else ["Call google_docs_auth(operation='start_oauth') first."]
         ),
     }
+
+
+_UNSAFE_FILENAME_CHARS = re.compile(r'[<>:"/\\|?*]')
+
+
+def _safe_filename(name: str) -> str:
+    """Sanitize a Doc title for use as a local filename (Windows-safe)."""
+    return _UNSAFE_FILENAME_CHARS.sub("_", name).strip().rstrip(".") or "untitled"
+
+
+def _build_breadcrumbs(service: Resource, folder_id: str) -> list[dict[str, str]]:
+    """Walk the parent chain from `folder_id` up to Drive root for UI breadcrumbs."""
+    chain: list[dict[str, str]] = []
+    current_id: str | None = folder_id
+    seen: set[str] = set()
+    while current_id and current_id not in seen:
+        seen.add(current_id)
+        try:
+            meta = service.files().get(fileId=current_id, fields="id, name, parents").execute()
+        except HttpError:
+            break
+        chain.append({"id": meta["id"], "name": meta["name"]})
+        parents = meta.get("parents") or []
+        current_id = parents[0] if parents else None
+    chain.reverse()
+    return chain
+
+
+def _collect_docs_in_folder(
+    service: Resource, folder_id: str | None, recursive: bool
+) -> list[dict[str, Any]]:
+    """List Google Docs directly inside `folder_id` (Drive root if None), optionally recursing."""
+    parent = folder_id or "root"
+    resp = (
+        service.files()
+        .list(
+            q=f"'{parent}' in parents and trashed = false and mimeType = '{GOOGLE_DOC_MIME}'",
+            pageSize=1000,
+            fields="files(id, name, modifiedTime)",
+        )
+        .execute()
+    )
+    docs: list[dict[str, Any]] = list(resp.get("files", []))
+    if recursive:
+        folders_resp = (
+            service.files()
+            .list(
+                q=f"'{parent}' in parents and trashed = false and mimeType = '{GOOGLE_FOLDER_MIME}'",
+                pageSize=1000,
+                fields="files(id, name)",
+            )
+            .execute()
+        )
+        for sub in folders_resp.get("files", []):
+            docs.extend(_collect_docs_in_folder(service, sub["id"], recursive=True))
+    return docs
 
 
 async def google_drive(
@@ -171,6 +234,13 @@ async def google_drive(
             "extensions: .docx, .odt, .txt, .md (imported as plain text), .html, .htm, .rtf."
         ),
     ] = None,
+    output_dir: Annotated[
+        str | None,
+        Field(description="Local directory to export into. Required for: backup_folder."),
+    ] = None,
+    recursive: Annotated[
+        bool, Field(description="Recurse into subfolders. Optional for: backup_folder. Default False.")
+    ] = False,
 ) -> dict[str, Any]:
     """[RATIONALE] Portmanteau over Drive API v3 `files`, `permissions`, `revisions`,
     and `comments` resources scoped to Google Docs file management.
@@ -197,6 +267,14 @@ async def google_drive(
     - export(file_id, export_format, output_path) — download a Google Doc as pdf/docx/odt/txt/html/rtf/epub
     - import_file(file_path, name?, folder_id?) — upload a local .docx/.odt/.txt/.md/.html/.rtf file,
       converted into a new Google Doc
+    - browse(folder_id?) — list the folders and Google Docs directly inside a folder (None/omitted
+      = Drive root), plus the breadcrumb chain from root down to that folder
+    - backup_folder(folder_id?, output_dir, export_format, recursive) — export every Google Doc in
+      a folder to local files, with a `manifest.json` mapping doc id -> local path -> revision, so
+      the same folder can be restored later
+    - restore_file(file_id, file_path) — overwrite an **existing** Google Doc's content from a local
+      file (the inverse of `export` — push a locally-edited backup copy back to Drive, not create
+      a new doc)
 
     ## Return Format
     On success: `{"success": true, "message": str, "data": {...}}`. Paginated operations
@@ -315,6 +393,85 @@ async def google_drive(
                 "success": True,
                 "message": f"Imported '{src.name}' as Google Doc '{body['name']}'.",
                 "data": {"file": created},
+            }
+
+        if operation == "browse":
+            parent = folder_id or "root"
+            folders_resp = (
+                service.files()
+                .list(
+                    q=f"'{parent}' in parents and trashed = false and mimeType = '{GOOGLE_FOLDER_MIME}'",
+                    pageSize=200,
+                    fields=f"files({_FILE_FIELDS})",
+                    orderBy="name",
+                )
+                .execute()
+            )
+            docs_resp = (
+                service.files()
+                .list(
+                    q=f"'{parent}' in parents and trashed = false and mimeType = '{GOOGLE_DOC_MIME}'",
+                    pageSize=200,
+                    fields=f"files({_FILE_FIELDS})",
+                    orderBy="name",
+                )
+                .execute()
+            )
+            breadcrumbs = _build_breadcrumbs(service, folder_id) if folder_id else []
+            current = (
+                service.files().get(fileId=folder_id, fields="id, name").execute() if folder_id else None
+            )
+            folders = folders_resp.get("files", [])
+            docs = docs_resp.get("files", [])
+            return {
+                "success": True,
+                "message": f"{len(folders)} folder(s), {len(docs)} doc(s).",
+                "data": {"folder": current, "breadcrumbs": breadcrumbs, "folders": folders, "files": docs},
+            }
+
+        if operation == "backup_folder":
+            if not output_dir:
+                return {"success": False, "error": "output_dir is required", "error_type": "validation"}
+            out = Path(output_dir)
+            out.mkdir(parents=True, exist_ok=True)
+            docs = _collect_docs_in_folder(service, folder_id, recursive)
+            mime = _EXPORT_MIME_MAP[export_format]
+            manifest: dict[str, Any] = {
+                "folder_id": folder_id,
+                "exported_at": datetime.now(UTC).isoformat(),
+                "export_format": export_format,
+                "files": [],
+            }
+            errors: list[dict[str, str]] = []
+            for doc in docs:
+                dest = out / f"{_safe_filename(doc['name'])}.{export_format}"
+                try:
+                    data = service.files().export(fileId=doc["id"], mimeType=mime).execute()
+                except HttpError as exc:
+                    errors.append({"doc_id": doc["id"], "name": doc["name"], "error": str(exc)})
+                    continue
+                dest.write_bytes(data)
+                manifest["files"].append(
+                    {
+                        "doc_id": doc["id"],
+                        "name": doc["name"],
+                        "local_path": str(dest),
+                        "modified_time": doc.get("modifiedTime"),
+                    }
+                )
+            manifest_path = out / "manifest.json"
+            manifest_path.write_text(json.dumps(manifest, indent=2), encoding="utf-8")
+            backed_up = len(manifest["files"])
+            return {
+                "success": True,
+                "message": f"Backed up {backed_up} doc(s) to {out}"
+                + (f" ({len(errors)} failed)." if errors else "."),
+                "data": {
+                    "output_dir": str(out),
+                    "manifest_path": str(manifest_path),
+                    "count": backed_up,
+                    "errors": errors,
+                },
             }
 
         if not file_id:
@@ -502,6 +659,28 @@ async def google_drive(
                 "success": True,
                 "message": f"Exported to {dest} ({len(data)} bytes, {export_format}).",
                 "data": {"output_path": str(dest), "format": export_format, "size_bytes": len(data)},
+            }
+
+        if operation == "restore_file":
+            if not file_path:
+                return {"success": False, "error": "file_path is required", "error_type": "validation"}
+            src = Path(file_path)
+            if not src.is_file():
+                return {"success": False, "error": f"file not found: {src}", "error_type": "validation"}
+            source_mime = _IMPORT_MIME_MAP.get(src.suffix.lower())
+            if not source_mime:
+                return {
+                    "success": False,
+                    "error": f"unsupported source extension '{src.suffix}'",
+                    "error_type": "validation",
+                    "suggestions": [f"Supported: {', '.join(sorted(_IMPORT_MIME_MAP))}"],
+                }
+            media = MediaFileUpload(str(src), mimetype=source_mime, resumable=False)
+            updated = service.files().update(fileId=file_id, media_body=media, fields=_FILE_FIELDS).execute()
+            return {
+                "success": True,
+                "message": f"Restored '{src.name}' into existing document {file_id}.",
+                "data": {"file": updated},
             }
 
         return {"success": False, "error": f"Unknown operation '{operation}'", "error_type": "validation"}

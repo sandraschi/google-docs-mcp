@@ -9,6 +9,7 @@ const apiTarget = process.env.VITE_API_TARGET || "http://127.0.0.1:11972";
 export default defineConfig({
   plugins: [react()],
   server: {
+    host: "127.0.0.1",
     port: 11973,
     strictPort: true,
     proxy: {

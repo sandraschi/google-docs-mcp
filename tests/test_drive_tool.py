@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+import json
+
 import pytest
 
 from google_docs_mcp.tools.drive_tool import google_drive
@@ -123,3 +125,92 @@ async def test_import_file_uses_explicit_name(configured_env, mock_drive_service
     await google_drive(operation="import_file", file_path=str(src), name="Custom Name")
     _, kwargs = mock_drive_service.files().create.call_args
     assert kwargs["body"]["name"] == "Custom Name"
+
+
+async def test_browse_root_lists_folders_and_docs(configured_env, mock_drive_service):
+    mock_drive_service.files().list().execute.side_effect = [
+        {"files": [{"id": "f1", "name": "Reports"}]},  # folders query
+        {"files": [{"id": "d1", "name": "Q3 Report"}]},  # docs query
+    ]
+    result = await google_drive(operation="browse")
+    assert result["success"] is True
+    assert result["data"]["folder"] is None
+    assert result["data"]["breadcrumbs"] == []
+    assert result["data"]["folders"][0]["name"] == "Reports"
+    assert result["data"]["files"][0]["name"] == "Q3 Report"
+
+
+async def test_browse_subfolder_includes_breadcrumbs(configured_env, mock_drive_service):
+    mock_drive_service.files().list().execute.side_effect = [
+        {"files": []},  # folders query
+        {"files": [{"id": "d1", "name": "Doc in subfolder"}]},  # docs query
+    ]
+    mock_drive_service.files().get().execute.side_effect = [
+        {"id": "sub1", "name": "Sub", "parents": []},  # breadcrumb walk
+        {"id": "sub1", "name": "Sub"},  # current folder metadata
+    ]
+    result = await google_drive(operation="browse", folder_id="sub1")
+    assert result["success"] is True
+    assert result["data"]["folder"]["name"] == "Sub"
+    assert result["data"]["breadcrumbs"] == [{"id": "sub1", "name": "Sub"}]
+
+
+async def test_backup_folder_requires_output_dir(configured_env, mock_drive_service):
+    result = await google_drive(operation="backup_folder", output_dir=None)
+    assert result["success"] is False
+    assert result["error_type"] == "validation"
+
+
+async def test_backup_folder_writes_files_and_manifest(configured_env, mock_drive_service, tmp_path):
+    mock_drive_service.files().list().execute.return_value = {
+        "files": [{"id": "d1", "name": "My Doc", "modifiedTime": "2026-09-01T00:00:00Z"}]
+    }
+    mock_drive_service.files().export().execute.return_value = b"%PDF-1.4 fake"
+    out_dir = tmp_path / "backup"
+
+    result = await google_drive(operation="backup_folder", output_dir=str(out_dir), export_format="pdf")
+
+    assert result["success"] is True
+    assert result["data"]["count"] == 1
+    doc_file = out_dir / "My Doc.pdf"
+    assert doc_file.exists()
+    assert doc_file.read_bytes() == b"%PDF-1.4 fake"
+    manifest = json.loads((out_dir / "manifest.json").read_text())
+    assert manifest["files"][0]["doc_id"] == "d1"
+    assert manifest["files"][0]["local_path"] == str(doc_file)
+
+
+async def test_backup_folder_sanitizes_unsafe_filenames(configured_env, mock_drive_service, tmp_path):
+    mock_drive_service.files().list().execute.return_value = {
+        "files": [{"id": "d1", "name": "Report: Q3 / Final?", "modifiedTime": None}]
+    }
+    mock_drive_service.files().export().execute.return_value = b"data"
+    out_dir = tmp_path / "backup"
+
+    result = await google_drive(operation="backup_folder", output_dir=str(out_dir))
+
+    assert result["success"] is True
+    written = list(out_dir.glob("*.pdf"))
+    assert len(written) == 1
+    assert "/" not in written[0].name
+    assert ":" not in written[0].name
+
+
+async def test_restore_file_requires_existing_local_file(configured_env, mock_drive_service, tmp_path):
+    missing = tmp_path / "missing.docx"
+    result = await google_drive(operation="restore_file", file_id="d1", file_path=str(missing))
+    assert result["success"] is False
+    assert result["error_type"] == "validation"
+
+
+async def test_restore_file_updates_existing_doc(configured_env, mock_drive_service, tmp_path):
+    src = tmp_path / "edited.txt"
+    src.write_text("updated content")
+    mock_drive_service.files().update().execute.return_value = {"id": "d1", "name": "My Doc"}
+
+    result = await google_drive(operation="restore_file", file_id="d1", file_path=str(src))
+
+    assert result["success"] is True
+    assert result["data"]["file"]["id"] == "d1"
+    _, kwargs = mock_drive_service.files().update.call_args
+    assert kwargs["fileId"] == "d1"

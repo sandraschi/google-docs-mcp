@@ -2,6 +2,23 @@
 
 ## [Unreleased]
 
+- `google_drive`: added `browse` (folder-aware listing with breadcrumbs), `backup_folder`
+  (export every doc in a folder to local files + `manifest.json`), and `restore_file` (overwrite
+  an existing Google Doc's content from a local file) operations.
+- New `google_docs_convert_advanced` tool — bridges to a sibling libreoffice-mcp server via a
+  real MCP client call for formats Drive's own export can't produce (doc/fodt/rtf). Surfaces
+  `error_type: "dependency_unavailable"` when libreoffice-mcp isn't reachable.
+- New `google_docs_sync` tool + `sync_engine.py` — polling two-way sync between a local folder
+  and a Drive folder (OneDrive-like local mirror). Conflicts are never silently overwritten
+  (local edit renamed and kept, Drive becomes canonical); remote trash moves the local file to
+  `_remote_deleted/` instead of deleting it; local deletion self-heals via re-pull rather than
+  touching the Drive doc. Runs as a background `asyncio` poll loop in the Starlette backend's
+  lifespan, minimum 60s interval.
+- Webapp: new **Sync** page (`/sync`) — configure/enable/disable the local mirror, run a pass
+  on demand, view last-run/last-error status.
+- Webapp: Documents page now has a folder browser (breadcrumb navigation, replacing the
+  always-flat file list as the default view), a Backup-folder panel, and per-file Restore/
+  Convert (advanced) actions.
 - `google_drive`: added `export` (pdf/docx/odt/txt/html/rtf/epub, 10 MB Drive API limit) and
   `import_file` (.docx/.odt/.txt/.md/.html/.rtf → new Google Doc) operations, plus matching
   webapp UI on the Documents page (per-file export dropdown, Import button with real upload).
