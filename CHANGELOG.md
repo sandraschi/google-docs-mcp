@@ -2,6 +2,15 @@
 
 ## [Unreleased]
 
+- Standard-conformance pass (TOOL_DESIGN_STANDARDS.md audit): `browse` now paginates its docs
+  list (`limit`/`cursor`/`has_more`/`next_cursor`, matching `list_files`/`search` — folders stay
+  unpaginated, bounded at 200); added two new Prefab App tools (`show_google_drive_folder_app`,
+  `show_google_docs_sync_status_app`) for the list/status coverage rule; every tool now sets
+  `annotations=` (readOnlyHint/destructiveHint/idempotentHint/openWorldHint); `google_docs_sync`
+  and `google_docs_convert_advanced` docstrings now lead with `[RATIONALE]` like `google_drive`
+  does; added `docs/README.md` index; clarified the webhooks declared-exception note in
+  `docs/DEVELOPMENT.md` (it had gone stale — written before the sync feature existed, so it
+  claimed "no background jobs" when one now runs).
 - `google_drive`: added `browse` (folder-aware listing with breadcrumbs), `backup_folder`
   (export every doc in a folder to local files + `manifest.json`), and `restore_file` (overwrite
   an existing Google Doc's content from a local file) operations.

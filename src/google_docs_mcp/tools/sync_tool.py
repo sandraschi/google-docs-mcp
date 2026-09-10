@@ -83,7 +83,16 @@ async def google_docs_sync(
         ),
     ] = "docx",
 ) -> dict[str, Any]:
-    """Configure, inspect, or manually trigger the local-folder <-> Drive-folder sync.
+    """[RATIONALE] A dedicated tool, not another `google_drive` operation — sync carries
+    persistent state (a config file and a manifest tracking every synced doc's last-known
+    hash/modifiedTime) that every `google_drive` operation is stateless with respect to. It is
+    also **polling**, not push-based: a publicly reachable HTTPS endpoint for Drive's
+    `files.watch` push notifications isn't realistic for a local desktop app with no public
+    endpoint, so this reconciles on an interval instead (see `sync_engine.py` module docstring
+    for the full tradeoff and the three safety defaults: conflicts never silently overwritten,
+    remote deletes never delete local files, local deletes never trash remote docs).
+
+    Configure, inspect, or manually trigger the local-folder <-> Drive-folder sync.
 
     ## Operations
     - configure(local_dir, folder_id?, interval_seconds?, export_format?) — set up (or replace) the

@@ -155,6 +155,32 @@ async def test_browse_subfolder_includes_breadcrumbs(configured_env, mock_drive_
     assert result["data"]["breadcrumbs"] == [{"id": "sub1", "name": "Sub"}]
 
 
+async def test_browse_paginates_docs_but_not_folders(configured_env, mock_drive_service):
+    mock_drive_service.files().list().execute.side_effect = [
+        {"files": [{"id": "f1", "name": "Reports"}]},  # folders query — no pageToken in response
+        {
+            "files": [{"id": "d1", "name": "Doc 1"}],
+            "nextPageToken": "page2",
+        },  # docs query — more pages available
+    ]
+    result = await google_drive(operation="browse", limit=1)
+    assert result["success"] is True
+    assert result["data"]["has_more"] is True
+    assert result["data"]["next_cursor"] == "page2"
+    # folders list has no pagination fields — it's returned in full every call
+    assert "has_more" not in result["data"]["folders"]
+
+
+async def test_browse_no_more_docs_reports_has_more_false(configured_env, mock_drive_service):
+    mock_drive_service.files().list().execute.side_effect = [
+        {"files": []},
+        {"files": [{"id": "d1", "name": "Only Doc"}]},  # no nextPageToken
+    ]
+    result = await google_drive(operation="browse")
+    assert result["data"]["has_more"] is False
+    assert result["data"]["next_cursor"] is None
+
+
 async def test_backup_folder_requires_output_dir(configured_env, mock_drive_service):
     result = await google_drive(operation="backup_folder", output_dir=None)
     assert result["success"] is False

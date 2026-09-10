@@ -20,11 +20,13 @@ from fastmcp.server.providers.skills import SkillsDirectoryProvider
 from google_docs_mcp import __version__
 from google_docs_mcp.config import settings
 from google_docs_mcp.tools.auth_tool import google_docs_auth
+from google_docs_mcp.tools.browse_app import show_google_drive_folder_app
 from google_docs_mcp.tools.docs_tool import google_docs
 from google_docs_mcp.tools.drive_tool import google_drive
 from google_docs_mcp.tools.help_tool import google_docs_mcp_help
 from google_docs_mcp.tools.libreoffice_tool import google_docs_convert_advanced
 from google_docs_mcp.tools.status_app import show_google_docs_status_app
+from google_docs_mcp.tools.sync_status_app import show_google_docs_sync_status_app
 from google_docs_mcp.tools.sync_tool import google_docs_sync
 
 logger = logging.getLogger("google_docs_mcp")
@@ -52,13 +54,39 @@ mcp = FastMCP(
     lifespan=lifespan,
 )
 
-mcp.tool()(google_docs_auth)
-mcp.tool()(google_docs)
-mcp.tool()(google_drive)
-mcp.tool()(google_docs_mcp_help)
-mcp.tool()(google_docs_convert_advanced)
-mcp.tool()(google_docs_sync)
-mcp.tool(app=True)(show_google_docs_status_app)
+# Annotation hints per TOOL_DESIGN_STANDARDS.md §9 — the fastmcp.tool.annotations
+# constants module doesn't exist yet in 3.4.2, so these use the ToolAnnotations dict
+# keys directly (readOnlyHint/destructiveHint/idempotentHint/openWorldHint). For a
+# portmanteau mixing read/write/destructive operations, the tool-level hint reflects
+# the worst case present (e.g. google_drive has delete_permanently -> destructiveHint=True).
+mcp.tool(annotations={"readOnlyHint": False, "destructiveHint": False, "openWorldHint": True})(
+    google_docs_auth
+)
+mcp.tool(annotations={"readOnlyHint": False, "destructiveHint": False, "openWorldHint": True})(google_docs)
+mcp.tool(annotations={"readOnlyHint": False, "destructiveHint": True, "openWorldHint": True})(google_drive)
+mcp.tool(annotations={"readOnlyHint": True, "idempotentHint": True, "openWorldHint": False})(
+    google_docs_mcp_help
+)
+mcp.tool(
+    annotations={
+        "readOnlyHint": False,
+        "destructiveHint": False,
+        "idempotentHint": True,
+        "openWorldHint": True,
+    }
+)(google_docs_convert_advanced)
+mcp.tool(annotations={"readOnlyHint": False, "destructiveHint": False, "openWorldHint": True})(
+    google_docs_sync
+)
+mcp.tool(app=True, annotations={"readOnlyHint": True, "idempotentHint": True, "openWorldHint": False})(
+    show_google_docs_status_app
+)
+mcp.tool(app=True, annotations={"readOnlyHint": True, "idempotentHint": True, "openWorldHint": True})(
+    show_google_drive_folder_app
+)
+mcp.tool(app=True, annotations={"readOnlyHint": True, "idempotentHint": True, "openWorldHint": False})(
+    show_google_docs_sync_status_app
+)
 
 _skills_dir = Path(__file__).resolve().parent / "skills"
 if _skills_dir.is_dir():

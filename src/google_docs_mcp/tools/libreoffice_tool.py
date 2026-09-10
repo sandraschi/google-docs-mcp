@@ -39,7 +39,15 @@ async def google_docs_convert_advanced(
     ],
     output_path: Annotated[str, Field(description="Local path to write the converted file to.")],
 ) -> dict[str, Any]:
-    """Export a Google Doc, then convert it with libreoffice-mcp (a real MCP-to-MCP call).
+    """[RATIONALE] Split from `google_drive`'s `export` operation deliberately, not tool
+    sprawl: `export` calls Google's own conversion (`files.export`), a single well-understood
+    API boundary. This tool calls a *different* MCP server (libreoffice-mcp) over the network,
+    has a different availability story (it can be "not running" independently of Google's own
+    uptime), and chains two operations (export from Drive, then convert with LibreOffice) rather
+    than one. Folding it into `google_drive` would blur what `error_type: "dependency_unavailable"`
+    even means for that tool's other operations, which have no such external dependency.
+
+    Export a Google Doc, then convert it with libreoffice-mcp (a real MCP-to-MCP call).
 
     ## Return Format
     `{"success": true, "message": str, "data": {"output_path": str, "format": str}}` on success.

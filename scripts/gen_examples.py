@@ -228,6 +228,13 @@ add("status-app-basic", "Show the rich Prefab status card",
 add("status-app-after-connect", "Check the status card right after connecting",
     "I just connected my Google account — show me the updated status.",
     "show_google_docs_status_app", {})
+add("folder-app-root", "Show a rich card for the top level of Drive",
+    "Show me a card view of my Google Drive folders.", "show_google_drive_folder_app", {})
+add("folder-app-subfolder", "Show a rich card for a specific folder",
+    "Show me a card view of what's in my 'Contracts' folder.",
+    "show_google_drive_folder_app", {"folder_id": "1ContractsFolderId"})
+add("sync-status-app-basic", "Show a rich card for sync status",
+    "Show me a status card for my Drive folder sync.", "show_google_docs_sync_status_app", {})
 
 # --- additional phrasings and edge cases to reach the 100+ floor ---
 add("auth-status-webapp-context", "Check auth status from a webapp Settings context",

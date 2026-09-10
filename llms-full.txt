@@ -67,8 +67,10 @@ Drive API v3 file lifecycle. Operations:
   (10 MB Drive API export limit)
 - `import_file(file_path, name?, folder_id?)` — upload a local .docx/.odt/.txt/.md/.html/.rtf and
   convert it into a new Google Doc
-- `browse(folder_id?)` — folders + Google Docs directly inside `folder_id` (Drive root if
-  omitted), plus breadcrumbs back to root
+- `browse(folder_id?, limit=25, cursor?)` — folders + Google Docs directly inside `folder_id`
+  (Drive root if omitted), plus breadcrumbs back to root. Folders are unpaginated (bounded —
+  200 max, realistic for any folder tree); the docs list is paginated the same way as
+  `list_files`/`search`
 - `backup_folder(output_dir, folder_id?, export_format="pdf", recursive=False)` — exports every
   doc in a folder to local files, writes a `manifest.json` (`{doc_id, name, local_path,
   modified_time}` per file)
@@ -120,6 +122,23 @@ Static markdown tool reference, no network calls, no parameters.
 Prefab UI (`@mcp.tool(app=True)`) status card — same data as `google_docs_auth(status)`,
 rendered as a rich in-chat card with a plain-text fallback for hosts without MCP Apps support.
 
+### show_google_drive_folder_app(folder_id?)
+
+Prefab UI card — same data as `google_drive(operation="browse", folder_id=...)`, rendered as
+tables (folders, docs) with breadcrumbs instead of a dict.
+
+### show_google_docs_sync_status_app()
+
+Prefab UI card — same data as `google_docs_sync(operation="status")`, rendered as a status
+card (local folder, Drive folder, poll interval, tracked-doc count, enabled/disabled badge).
+
+## Tool annotation hints
+
+Every tool sets FastMCP `annotations=` (`readOnlyHint`/`destructiveHint`/`idempotentHint`/
+`openWorldHint`) on its registration in `server.py`. Portmanteau tools mixing read/write/
+destructive operations use the worst-case hint — `google_drive` sets `destructiveHint=True`
+because of `delete_permanently`, even though most of its operations aren't destructive.
+
 ## Return shape (every tool)
 
 Success: `{"success": true, "message": str, "data": {...}}`
@@ -136,6 +155,9 @@ Failure: `{"success": false, "error": str, "error_type": str, "suggestions": [st
 - `conflict` — Google API returned HTTP 409.
 - `rate_limited` — Docs/Drive API quota hit. Wait a few seconds, retry once.
 - `api_error` — any other Google API error, message carries detail.
+- `dependency_unavailable` — `google_docs_convert_advanced` only: libreoffice-mcp isn't
+  reachable at `LIBREOFFICE_MCP_URL`. Distinct from `not_configured`/`not_authenticated`,
+  which are about this server's own Google OAuth setup, not the other server's availability.
 
 ## Architecture
 

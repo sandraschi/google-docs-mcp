@@ -702,6 +702,29 @@
     "arguments": {}
   },
   {
+    "name": "folder-app-root",
+    "description": "Show a rich card for the top level of Drive",
+    "prompt": "Show me a card view of my Google Drive folders.",
+    "tool": "show_google_drive_folder_app",
+    "arguments": {}
+  },
+  {
+    "name": "folder-app-subfolder",
+    "description": "Show a rich card for a specific folder",
+    "prompt": "Show me a card view of what's in my 'Contracts' folder.",
+    "tool": "show_google_drive_folder_app",
+    "arguments": {
+      "folder_id": "1ContractsFolderId"
+    }
+  },
+  {
+    "name": "sync-status-app-basic",
+    "description": "Show a rich card for sync status",
+    "prompt": "Show me a status card for my Drive folder sync.",
+    "tool": "show_google_docs_sync_status_app",
+    "arguments": {}
+  },
+  {
     "name": "auth-status-webapp-context",
     "description": "Check auth status from a webapp Settings context",
     "prompt": "Is my Google account connected right now?",

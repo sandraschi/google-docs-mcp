@@ -6,7 +6,7 @@ description: How to drive google-docs-mcp — Google Docs content editing, Googl
 # google-docs-mcp usage guide
 
 This server gives an agent real read/write access to a user's Google Docs and
-Drive, through six tools:
+Drive, through nine tools:
 
 - **`google_docs_auth`** — OAuth lifecycle (status / start_oauth / revoke).
 - **`google_docs`** — Docs API v1 content editing (create, read, edit text and styles).
@@ -15,7 +15,14 @@ Drive, through six tools:
 - **`google_docs_convert_advanced`** — format conversion via a sibling libreoffice-mcp server
   (doc/fodt/rtf, formats Drive's own export can't produce).
 - **`google_docs_sync`** — polling two-way sync between a local folder and a Drive folder.
-- **`google_docs_mcp_help`** / **`show_google_docs_status_app`** — static reference / status card.
+- **`google_docs_mcp_help`** — static reference, no network calls.
+- **`show_google_docs_status_app`** / **`show_google_drive_folder_app`** /
+  **`show_google_docs_sync_status_app`** — Prefab in-chat cards for auth status, a folder
+  listing, and sync status respectively. Same data as the plain-dict tools they mirror
+  (`google_docs_auth(status)`, `google_drive(browse)`, `google_docs_sync(status)`) — use these
+  when the host renders MCP Apps and a rich card adds value; the plain-dict tools remain the
+  right choice for programmatic chaining (e.g. taking a `file_id` from `browse`'s output and
+  passing it to `google_docs`).
 
 ## First call of a session
 

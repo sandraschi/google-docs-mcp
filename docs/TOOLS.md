@@ -56,7 +56,7 @@ Google Drive API v3 file lifecycle.
 | `resolve_comment` | `file_id`, `comment_id` | — |
 | `export` | `file_id`, `output_path` | `export_format` (pdf/docx/odt/txt/html/rtf/epub, default pdf) |
 | `import_file` | `file_path` | `name`, `folder_id` |
-| `browse` | — | `folder_id` (Drive root if omitted) — folders + docs directly inside, plus breadcrumbs |
+| `browse` | — | `folder_id` (Drive root if omitted), `limit`, `cursor` — folders + docs directly inside, plus breadcrumbs. Folders are unpaginated (bounded, 200 max); the docs list is paginated like `list_files`/`search` (`has_more`/`next_cursor` in `data`) |
 | `backup_folder` | `output_dir` | `folder_id`, `export_format` (default pdf), `recursive` — exports every doc in a folder to local files + writes `manifest.json` |
 | `restore_file` | `file_id`, `file_path` | — overwrites an **existing** Google Doc's content from a local file (inverse of `export`/`import_file`, which create new docs) |
 
@@ -106,10 +106,29 @@ Static markdown reference of the tool surface. No network calls, no parameters.
 Prefab UI card (`@mcp.tool(app=True)`) — renders auth/config state in-chat. Same underlying
 data as `google_docs_auth(operation="status")`, presented as a rich card instead of a dict.
 
+## `show_google_drive_folder_app(folder_id?)`
+
+Prefab UI card — renders a Drive folder's contents (subfolders + docs) as tables with
+breadcrumbs. Same underlying data as `google_drive(operation="browse", folder_id=...)`.
+
+## `show_google_docs_sync_status_app()`
+
+Prefab UI card — renders the local-folder sync configuration and status. Same underlying data
+as `google_docs_sync(operation="status")`.
+
+## Tool annotation hints
+
+Every tool sets `annotations=` (`readOnlyHint`/`destructiveHint`/`idempotentHint`/
+`openWorldHint`) on its `@mcp.tool()` registration in `server.py`, per
+TOOL_DESIGN_STANDARDS.md §9. For portmanteau tools mixing read/write/destructive operations,
+the hint reflects the worst case present — e.g. `google_drive` sets `destructiveHint=True`
+because it includes `delete_permanently`, even though most of its operations are non-destructive.
+
 ## Return shape (all tools)
 
 Success: `{"success": true, "message": str, "data": {...}}`
 Failure: `{"success": false, "error": str, "error_type": str, "suggestions": [str]}`
 
 `error_type` values: `not_configured`, `not_authenticated`, `validation`, `permission`,
-`not_found`, `conflict`, `rate_limited`, `api_error`.
+`not_found`, `conflict`, `rate_limited`, `api_error`, `dependency_unavailable`
+(`google_docs_convert_advanced` only — libreoffice-mcp not reachable).

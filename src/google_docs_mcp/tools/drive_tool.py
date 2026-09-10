@@ -267,8 +267,11 @@ async def google_drive(
     - export(file_id, export_format, output_path) — download a Google Doc as pdf/docx/odt/txt/html/rtf/epub
     - import_file(file_path, name?, folder_id?) — upload a local .docx/.odt/.txt/.md/.html/.rtf file,
       converted into a new Google Doc
-    - browse(folder_id?) — list the folders and Google Docs directly inside a folder (None/omitted
-      = Drive root), plus the breadcrumb chain from root down to that folder
+    - browse(folder_id?, limit, cursor) — list the folders and Google Docs directly inside a folder
+      (None/omitted = Drive root), plus the breadcrumb chain from root down to that folder. Folders
+      are returned unpaginated (bounded — 200 direct subfolders covers any realistic case); the docs
+      list is paginated the same way as list_files/search (`limit`/`cursor` in, `has_more`/
+      `next_cursor` out) since a folder can hold far more documents than that
     - backup_folder(folder_id?, output_dir, export_format, recursive) — export every Google Doc in
       a folder to local files, with a `manifest.json` mapping doc id -> local path -> revision, so
       the same folder can be restored later
@@ -280,7 +283,8 @@ async def google_drive(
     On success: `{"success": true, "message": str, "data": {...}}`. Paginated operations
     (list_files, search, list_revisions, list_comments) return
     `{"items": [...], "has_more": bool, "next_cursor": str | null}` inside `data` — pass
-    `next_cursor` back as `cursor` to continue.
+    `next_cursor` back as `cursor` to continue. `browse`'s `data` carries the same `has_more`/
+    `next_cursor` pair (for its `files` list only — `folders` is unpaginated, see above).
     On failure: `{"success": false, "error": str, "error_type": str, "suggestions": [str]}`.
 
     ## Examples
@@ -397,6 +401,9 @@ async def google_drive(
 
         if operation == "browse":
             parent = folder_id or "root"
+            # Folders are bounded — a Drive folder having 200+ direct subfolders is not a
+            # realistic case worth paginating. Docs are the actually-unbounded side (a folder
+            # can easily hold thousands of files), so `limit`/`cursor` apply there.
             folders_resp = (
                 service.files()
                 .list(
@@ -411,8 +418,9 @@ async def google_drive(
                 service.files()
                 .list(
                     q=f"'{parent}' in parents and trashed = false and mimeType = '{GOOGLE_DOC_MIME}'",
-                    pageSize=200,
-                    fields=f"files({_FILE_FIELDS})",
+                    pageSize=limit,
+                    pageToken=cursor,
+                    fields=f"nextPageToken, files({_FILE_FIELDS})",
                     orderBy="name",
                 )
                 .execute()
@@ -423,10 +431,18 @@ async def google_drive(
             )
             folders = folders_resp.get("files", [])
             docs = docs_resp.get("files", [])
+            next_cursor = docs_resp.get("nextPageToken")
             return {
                 "success": True,
                 "message": f"{len(folders)} folder(s), {len(docs)} doc(s).",
-                "data": {"folder": current, "breadcrumbs": breadcrumbs, "folders": folders, "files": docs},
+                "data": {
+                    "folder": current,
+                    "breadcrumbs": breadcrumbs,
+                    "folders": folders,
+                    "files": docs,
+                    "has_more": next_cursor is not None,
+                    "next_cursor": next_cursor,
+                },
             }
 
         if operation == "backup_folder":

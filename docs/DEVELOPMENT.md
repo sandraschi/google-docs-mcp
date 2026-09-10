@@ -64,12 +64,20 @@ This repo requires onboarding (a third-party account — see `docs/ONBOARDING.md
 ## Deliberate deviations from WEBAPP_SOTA_STANDARDS.md (declared, not silent)
 
 - **No Inbox page.** The catch-them-all gate lists Inbox as "mandatory when the product has
-  inbound events." This server has none — no webhooks, no push notifications, no background
-  jobs. Google Drive API does support push notifications (`changes.watch`) but implementing
-  that is a real feature this repo doesn't have yet, not a page this webapp is missing; adding
-  it would require both the Drive webhook subscription flow and a page to show its output.
-  Tracked as a real follow-up if this server grows a notifications feature, not a gap to fill
-  with an empty page.
+  inbound events." This server has no inbound events in the webhook/push-notification sense.
+
+- **Webhooks: deliberately not implemented (declared exception, not a gap).** Drive API v3
+  does support push notifications (`files.watch`/`changes.watch`) that AGENTS.md §4.1 item 2
+  would otherwise require shipping in the same pass as any inbound-event capability. Not
+  implemented here because `files.watch` requires a **publicly reachable HTTPS callback URL**
+  registered with Google — there is no such endpoint for a local desktop app with no public
+  server, and standing one up (ngrok/Cloudflare Tunnel or similar) would be a materially
+  different, much heavier product than "a local Google Docs companion app." Instead,
+  `google_docs_sync` implements **polling** reconciliation on a background interval (min 60s) —
+  see `sync_engine.py`'s module docstring for the full tradeoff. This is a real background job
+  (an `asyncio.create_task` loop in the Starlette backend's lifespan), just not a webhook-driven
+  one. If this server ever grows a public-facing deployment mode, `files.watch` becomes viable
+  and worth revisiting — tracked as a real follow-up, not a page this webapp is missing today.
 - **No MOCK-badged sample data on Dashboard/Documents.** `ONBOARDING_STANDARD.md` asks for
   "Joe Mocky"-style sample content so an unconfigured webapp isn't a blank desert. This repo
   instead shows the explicit, honest empty/error state (`error_type: "not_configured"` /
