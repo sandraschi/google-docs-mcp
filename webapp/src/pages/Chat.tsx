@@ -1,6 +1,6 @@
 import { Download, Eraser, Send } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
-import { api } from "../lib/api";
+import { API_BASE, api } from "../lib/api";
 import { useLlmStore } from "../store/llm";
 
 type ChatMessage = {
@@ -99,7 +99,7 @@ export default function Chat() {
     setInput("");
     setLoading(true);
     try {
-      const res = await fetch("/api/llm/chat", {
+      const res = await fetch(`${API_BASE}/api/llm/chat`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({

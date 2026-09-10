@@ -1,5 +1,6 @@
 import { CheckCircle2, KeyRound, LogOut, XCircle } from "lucide-react";
 import { useEffect, useState } from "react";
+import { API_BASE } from "../lib/api";
 import { useLlmStore } from "../store/llm";
 
 type AuthStatus = {
@@ -16,7 +17,7 @@ export default function Settings() {
   const llm = useLlmStore();
 
   const loadStatus = () =>
-    fetch("/api/auth/status")
+    fetch(`${API_BASE}/api/auth/status`)
       .then((r) => r.json())
       .then(setStatus);
 
@@ -29,7 +30,7 @@ export default function Settings() {
   const startOAuth = async () => {
     setStarting(true);
     try {
-      await fetch("/api/auth/start", { method: "POST" });
+      await fetch(`${API_BASE}/api/auth/start`, { method: "POST" });
     } finally {
       setStarting(false);
       loadStatus();
@@ -37,7 +38,7 @@ export default function Settings() {
   };
 
   const revoke = async () => {
-    await fetch("/api/auth/revoke", { method: "POST" });
+    await fetch(`${API_BASE}/api/auth/revoke`, { method: "POST" });
     loadStatus();
   };
 

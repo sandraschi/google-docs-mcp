@@ -1,3 +1,12 @@
+// In dev, Vite proxies /api and /skill to the backend (vite.config.ts) so a
+// bare relative path works. In a production/Tauri build there is no dev
+// proxy — the webview serves static files from a different origin than the
+// backend — so requests must target the backend's absolute origin directly.
+// See native/tauri.conf.json's CSP `connect-src` for the matching allowlist.
+export const API_BASE: string = import.meta.env.PROD
+  ? "http://127.0.0.1:11972"
+  : "";
+
 export type AuthStatus = {
   configured: boolean;
   authenticated: boolean;
@@ -49,7 +58,7 @@ export type DriveResult = {
 };
 
 async function getJson<T>(path: string): Promise<T> {
-  const res = await fetch(path);
+  const res = await fetch(`${API_BASE}${path}`);
   if (!res.ok) throw new Error(`${path} -> ${res.status}`);
   return res.json() as Promise<T>;
 }
@@ -62,7 +71,8 @@ export const api = {
   dashboard: () => getJson<DashboardData>("/api/dashboard"),
   tools: () => getJson<{ items: ToolInfo[] }>("/api/tools"),
   skills: () => getJson<{ items: SkillInfo[] }>("/api/skills"),
-  skillContent: (name: string) => fetch(`/skill/${name}`).then((r) => r.text()),
+  skillContent: (name: string) =>
+    fetch(`${API_BASE}/skill/${name}`).then((r) => r.text()),
   llmProviders: () => getJson<{ local: LlmProvider[] }>("/api/llm/providers"),
   llmModels: (provider: string) =>
     getJson<{ models: string[] }>(`/api/llm/models?provider=${provider}`),

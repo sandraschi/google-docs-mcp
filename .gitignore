@@ -28,6 +28,8 @@ gen/
 dist/
 build/
 *.spec
+# ...except the hand-written PyInstaller spec (fleet-mandatory, not a stray build artifact)
+!google-docs-mcp-backend.spec
 *.exe
 !run_server.py
 *.mcpb
