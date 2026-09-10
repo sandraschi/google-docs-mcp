@@ -1,0 +1,1214 @@
+[
+  {
+    "name": "auth-status-check",
+    "description": "Check OAuth configuration and authentication state",
+    "prompt": "Check my Google Docs connection status.",
+    "tool": "google_docs_auth",
+    "arguments": {
+      "operation": "status"
+    }
+  },
+  {
+    "name": "auth-status-before-task",
+    "description": "Proactively check auth before starting a document task",
+    "prompt": "Before we start, is my Google account connected?",
+    "tool": "google_docs_auth",
+    "arguments": {
+      "operation": "status"
+    }
+  },
+  {
+    "name": "auth-start-oauth",
+    "description": "Begin the OAuth consent flow",
+    "prompt": "Connect my Google account.",
+    "tool": "google_docs_auth",
+    "arguments": {
+      "operation": "start_oauth"
+    }
+  },
+  {
+    "name": "auth-start-oauth-reconnect",
+    "description": "Re-authenticate after a token expired",
+    "prompt": "I think I got signed out — reconnect my Google account.",
+    "tool": "google_docs_auth",
+    "arguments": {
+      "operation": "start_oauth"
+    }
+  },
+  {
+    "name": "auth-revoke",
+    "description": "Revoke the cached OAuth token",
+    "prompt": "Disconnect my Google account from this app.",
+    "tool": "google_docs_auth",
+    "arguments": {
+      "operation": "revoke"
+    }
+  },
+  {
+    "name": "auth-revoke-switch-account",
+    "description": "Revoke access to switch to a different Google account",
+    "prompt": "Sign out of Google so I can connect a different account.",
+    "tool": "google_docs_auth",
+    "arguments": {
+      "operation": "revoke"
+    }
+  },
+  {
+    "name": "docs-create-basic",
+    "description": "Create a new blank Google Doc",
+    "prompt": "Create a new Google Doc called 'Meeting Notes'.",
+    "tool": "google_docs",
+    "arguments": {
+      "operation": "create",
+      "title": "Meeting Notes"
+    }
+  },
+  {
+    "name": "docs-create-report",
+    "description": "Create a doc for a status report",
+    "prompt": "Make a new doc titled 'Weekly Status — Week 37'.",
+    "tool": "google_docs",
+    "arguments": {
+      "operation": "create",
+      "title": "Weekly Status — Week 37"
+    }
+  },
+  {
+    "name": "docs-get-raw",
+    "description": "Fetch the raw Docs API document structure",
+    "prompt": "Show me the raw document JSON for document 1AbCdEfGhIjK.",
+    "tool": "google_docs",
+    "arguments": {
+      "operation": "get",
+      "document_id": "1AbCdEfGhIjK"
+    }
+  },
+  {
+    "name": "docs-read-text-basic",
+    "description": "Read the plain text content of a document",
+    "prompt": "What does my 'Meeting Notes' doc currently say?",
+    "tool": "google_docs",
+    "arguments": {
+      "operation": "read_text",
+      "document_id": "1AbCdEfGhIjK"
+    }
+  },
+  {
+    "name": "docs-read-text-summary",
+    "description": "Read a document to summarize it",
+    "prompt": "Read my 'Project Plan' doc and summarize the key points.",
+    "tool": "google_docs",
+    "arguments": {
+      "operation": "read_text",
+      "document_id": "1PlanDocId"
+    }
+  },
+  {
+    "name": "docs-get-structure-basic",
+    "description": "Get the heading/paragraph outline of a document",
+    "prompt": "Show me the outline of my 'Project Plan' doc.",
+    "tool": "google_docs",
+    "arguments": {
+      "operation": "get_structure",
+      "document_id": "1PlanDocId"
+    }
+  },
+  {
+    "name": "docs-get-structure-before-edit",
+    "description": "Get structure to find an edit target",
+    "prompt": "Find where the 'Timeline' heading is in my 'Project Plan' doc.",
+    "tool": "google_docs",
+    "arguments": {
+      "operation": "get_structure",
+      "document_id": "1PlanDocId"
+    }
+  },
+  {
+    "name": "docs-insert-text-at-index",
+    "description": "Insert text at a known index",
+    "prompt": "Insert 'Draft v2 — ' at the very start of document 1AbCdEfGhIjK.",
+    "tool": "google_docs",
+    "arguments": {
+      "operation": "insert_text",
+      "document_id": "1AbCdEfGhIjK",
+      "text": "Draft v2 — ",
+      "index": 1
+    }
+  },
+  {
+    "name": "docs-append-text-basic",
+    "description": "Append text to the end of a document",
+    "prompt": "Add a line about the budget approval to the end of my 'Meeting Notes' doc.",
+    "tool": "google_docs",
+    "arguments": {
+      "operation": "append_text",
+      "document_id": "1AbCdEfGhIjK",
+      "text": "\nBudget approved by finance."
+    }
+  },
+  {
+    "name": "docs-append-text-bullet",
+    "description": "Append a bullet-style line to a document",
+    "prompt": "Add another highlight bullet to my status report about the design review being complete.",
+    "tool": "google_docs",
+    "arguments": {
+      "operation": "append_text",
+      "document_id": "1StatusDocId",
+      "text": "\n- Design review complete"
+    }
+  },
+  {
+    "name": "docs-delete-range-basic",
+    "description": "Delete a specific character range",
+    "prompt": "Delete the outdated sentence between index 120 and 210 in document 1AbCdEfGhIjK.",
+    "tool": "google_docs",
+    "arguments": {
+      "operation": "delete_range",
+      "document_id": "1AbCdEfGhIjK",
+      "start_index": 120,
+      "end_index": 210
+    }
+  },
+  {
+    "name": "docs-replace-all-text-placeholder",
+    "description": "Replace a template placeholder across the whole document",
+    "prompt": "Replace every '[CLIENT NAME]' with 'Acme Corp' in my 'Contract Template' doc.",
+    "tool": "google_docs",
+    "arguments": {
+      "operation": "replace_all_text",
+      "document_id": "1ContractDocId",
+      "find_text": "[CLIENT NAME]",
+      "replace_text": "Acme Corp"
+    }
+  },
+  {
+    "name": "docs-replace-all-text-typo",
+    "description": "Fix a repeated typo throughout a document",
+    "prompt": "Fix every 'recieve' to 'receive' in my report.",
+    "tool": "google_docs",
+    "arguments": {
+      "operation": "replace_all_text",
+      "document_id": "1ReportDocId",
+      "find_text": "recieve",
+      "replace_text": "receive"
+    }
+  },
+  {
+    "name": "docs-replace-all-text-case-sensitive",
+    "description": "Case-sensitive find and replace",
+    "prompt": "Replace only the exact capitalized 'TODO' markers with 'DONE' in my checklist doc, case sensitive.",
+    "tool": "google_docs",
+    "arguments": {
+      "operation": "replace_all_text",
+      "document_id": "1ChecklistDocId",
+      "find_text": "TODO",
+      "replace_text": "DONE",
+      "match_case": true
+    }
+  },
+  {
+    "name": "docs-insert-page-break",
+    "description": "Insert a page break",
+    "prompt": "Add a page break right before the 'Appendix' section in my report.",
+    "tool": "google_docs",
+    "arguments": {
+      "operation": "insert_page_break",
+      "document_id": "1ReportDocId",
+      "index": 4200
+    }
+  },
+  {
+    "name": "docs-insert-table-basic",
+    "description": "Insert a table for structured data",
+    "prompt": "Add a 3 by 4 table to the end of my 'Budget' doc for expense categories.",
+    "tool": "google_docs",
+    "arguments": {
+      "operation": "insert_table",
+      "document_id": "1BudgetDocId",
+      "rows": 3,
+      "columns": 4,
+      "index": 1500
+    }
+  },
+  {
+    "name": "docs-update-paragraph-style-heading",
+    "description": "Turn a paragraph into a heading",
+    "prompt": "Turn the 'Introduction' paragraph into a Heading 2.",
+    "tool": "google_docs",
+    "arguments": {
+      "operation": "update_paragraph_style",
+      "document_id": "1DocId",
+      "start_index": 1,
+      "end_index": 13,
+      "named_style_type": "HEADING_2"
+    }
+  },
+  {
+    "name": "docs-update-paragraph-style-center",
+    "description": "Center-align a paragraph",
+    "prompt": "Center the title paragraph in my flyer doc.",
+    "tool": "google_docs",
+    "arguments": {
+      "operation": "update_paragraph_style",
+      "document_id": "1FlyerDocId",
+      "start_index": 1,
+      "end_index": 40,
+      "alignment": "CENTER"
+    }
+  },
+  {
+    "name": "docs-update-text-style-bold",
+    "description": "Make specific text bold",
+    "prompt": "Make the first paragraph of my cover letter bold.",
+    "tool": "google_docs",
+    "arguments": {
+      "operation": "update_text_style",
+      "document_id": "1CoverLetterId",
+      "start_index": 1,
+      "end_index": 180,
+      "bold": true
+    }
+  },
+  {
+    "name": "docs-update-text-style-color",
+    "description": "Change text color to highlight urgency",
+    "prompt": "Make the word URGENT in my email draft red and bold.",
+    "tool": "google_docs",
+    "arguments": {
+      "operation": "update_text_style",
+      "document_id": "1EmailDraftId",
+      "start_index": 55,
+      "end_index": 61,
+      "bold": true,
+      "foreground_color": "FF0000"
+    }
+  },
+  {
+    "name": "docs-update-text-style-italic-underline",
+    "description": "Apply italic and underline together",
+    "prompt": "Make the case citation in my legal memo italic and underlined.",
+    "tool": "google_docs",
+    "arguments": {
+      "operation": "update_text_style",
+      "document_id": "1MemoDocId",
+      "start_index": 900,
+      "end_index": 950,
+      "italic": true,
+      "underline": true
+    }
+  },
+  {
+    "name": "docs-batch-update-footer",
+    "description": "Use the raw batch_update escape hatch for a footer",
+    "prompt": "Add a footer saying 'Confidential — Internal Use Only' to every page of my report.",
+    "tool": "google_docs",
+    "arguments": {
+      "operation": "batch_update",
+      "document_id": "1ReportDocId",
+      "requests": [
+        {
+          "createFooter": {
+            "type": "DEFAULT"
+          }
+        }
+      ]
+    }
+  },
+  {
+    "name": "docs-batch-update-suggested-edit",
+    "description": "Use raw batch_update for a Docs API feature without a named operation",
+    "prompt": "Insert this correction as a tracked suggestion, not a direct edit.",
+    "tool": "google_docs",
+    "arguments": {
+      "operation": "batch_update",
+      "document_id": "1DraftDocId",
+      "requests": [
+        {
+          "insertText": {
+            "location": {
+              "index": 300
+            },
+            "text": "revised wording"
+          }
+        }
+      ]
+    }
+  },
+  {
+    "name": "drive-list-files-basic",
+    "description": "List recent Google Docs files",
+    "prompt": "List the Google Docs I've edited most recently.",
+    "tool": "google_drive",
+    "arguments": {
+      "operation": "list_files",
+      "limit": 10
+    }
+  },
+  {
+    "name": "drive-list-files-folder",
+    "description": "List files inside a specific folder",
+    "prompt": "Show me everything in my 'Contracts' folder.",
+    "tool": "google_drive",
+    "arguments": {
+      "operation": "list_files",
+      "folder_id": "1ContractsFolderId",
+      "limit": 25
+    }
+  },
+  {
+    "name": "drive-list-files-page2",
+    "description": "Continue a paginated file listing",
+    "prompt": "Show me the next page of those results.",
+    "tool": "google_drive",
+    "arguments": {
+      "operation": "list_files",
+      "limit": 25,
+      "cursor": "CAAaBBQCEB0"
+    }
+  },
+  {
+    "name": "drive-search-basic",
+    "description": "Full-text search across Drive",
+    "prompt": "Search my Drive for anything mentioning 'quarterly budget'.",
+    "tool": "google_drive",
+    "arguments": {
+      "operation": "search",
+      "query": "quarterly budget"
+    }
+  },
+  {
+    "name": "drive-search-scoped-folder",
+    "description": "Search within a specific folder",
+    "prompt": "Search my 'Contracts' folder for drafts still marked '[DRAFT]'.",
+    "tool": "google_drive",
+    "arguments": {
+      "operation": "search",
+      "query": "[DRAFT]",
+      "folder_id": "1ContractsFolderId"
+    }
+  },
+  {
+    "name": "drive-get-metadata-basic",
+    "description": "Get a file's metadata",
+    "prompt": "When was my 'Budget' doc last modified, and who owns it?",
+    "tool": "google_drive",
+    "arguments": {
+      "operation": "get_metadata",
+      "file_id": "1BudgetDocId"
+    }
+  },
+  {
+    "name": "drive-create-folder-basic",
+    "description": "Create a new Drive folder",
+    "prompt": "Make a new folder called 'Archive 2026'.",
+    "tool": "google_drive",
+    "arguments": {
+      "operation": "create_folder",
+      "name": "Archive 2026"
+    }
+  },
+  {
+    "name": "drive-create-folder-nested",
+    "description": "Create a folder inside an existing folder",
+    "prompt": "Create a 'Q1' subfolder inside my 'Reports' folder.",
+    "tool": "google_drive",
+    "arguments": {
+      "operation": "create_folder",
+      "name": "Q1",
+      "folder_id": "1ReportsFolderId"
+    }
+  },
+  {
+    "name": "drive-copy-basic",
+    "description": "Copy a document with a new name",
+    "prompt": "Copy my 'Client Proposal Template' and name the copy 'Proposal — Acme Corp'.",
+    "tool": "google_drive",
+    "arguments": {
+      "operation": "copy",
+      "file_id": "1TemplateDocId",
+      "name": "Proposal — Acme Corp"
+    }
+  },
+  {
+    "name": "drive-copy-to-folder",
+    "description": "Copy a document into a specific folder",
+    "prompt": "Duplicate my template into the 'Contracts' folder as 'Acme Agreement'.",
+    "tool": "google_drive",
+    "arguments": {
+      "operation": "copy",
+      "file_id": "1TemplateDocId",
+      "name": "Acme Agreement",
+      "folder_id": "1ContractsFolderId"
+    }
+  },
+  {
+    "name": "drive-move-basic",
+    "description": "Move a file into a different folder",
+    "prompt": "Move my 'Draft Proposal' doc into my 'Client X' folder.",
+    "tool": "google_drive",
+    "arguments": {
+      "operation": "move",
+      "file_id": "1DraftProposalId",
+      "new_parent_id": "1ClientXFolderId"
+    }
+  },
+  {
+    "name": "drive-rename-basic",
+    "description": "Rename a file",
+    "prompt": "Rename 'Untitled document' to 'Vendor Agreement — DRAFT'.",
+    "tool": "google_drive",
+    "arguments": {
+      "operation": "rename",
+      "file_id": "1UntitledDocId",
+      "name": "Vendor Agreement — DRAFT"
+    }
+  },
+  {
+    "name": "drive-trash-basic",
+    "description": "Move a file to trash (reversible)",
+    "prompt": "Delete my old 'Scratch Notes' doc.",
+    "tool": "google_drive",
+    "arguments": {
+      "operation": "trash",
+      "file_id": "1ScratchNotesId"
+    }
+  },
+  {
+    "name": "drive-untrash-basic",
+    "description": "Restore a file from trash",
+    "prompt": "Actually, restore that 'Scratch Notes' doc I just trashed.",
+    "tool": "google_drive",
+    "arguments": {
+      "operation": "untrash",
+      "file_id": "1ScratchNotesId"
+    }
+  },
+  {
+    "name": "drive-delete-permanently-confirmed",
+    "description": "Permanently delete a file with explicit confirmation",
+    "prompt": "Permanently delete my old 'Scratch Notes' doc — I don't need to recover it, ever.",
+    "tool": "google_drive",
+    "arguments": {
+      "operation": "delete_permanently",
+      "file_id": "1ScratchNotesId",
+      "confirm": true
+    }
+  },
+  {
+    "name": "drive-share-reader",
+    "description": "Share a document as read-only",
+    "prompt": "Share my 'Proposal' doc with sandra@example.com as a viewer.",
+    "tool": "google_drive",
+    "arguments": {
+      "operation": "share",
+      "file_id": "1ProposalDocId",
+      "email": "sandra@example.com",
+      "role": "reader"
+    }
+  },
+  {
+    "name": "drive-share-commenter",
+    "description": "Share a document with comment access",
+    "prompt": "Share my 'Proposal' doc with sandra@example.com so she can comment.",
+    "tool": "google_drive",
+    "arguments": {
+      "operation": "share",
+      "file_id": "1ProposalDocId",
+      "email": "sandra@example.com",
+      "role": "commenter"
+    }
+  },
+  {
+    "name": "drive-share-writer",
+    "description": "Share a document with edit access",
+    "prompt": "Give teammate@example.com edit access to the 'Team Roadmap' doc.",
+    "tool": "google_drive",
+    "arguments": {
+      "operation": "share",
+      "file_id": "1RoadmapDocId",
+      "email": "teammate@example.com",
+      "role": "writer"
+    }
+  },
+  {
+    "name": "drive-share-no-notification",
+    "description": "Share without sending an email notification",
+    "prompt": "Share this doc with alex@example.com as a reader but don't email them about it.",
+    "tool": "google_drive",
+    "arguments": {
+      "operation": "share",
+      "file_id": "1DocId",
+      "email": "alex@example.com",
+      "role": "reader",
+      "send_notification": false
+    }
+  },
+  {
+    "name": "drive-list-permissions-basic",
+    "description": "List who has access to a file",
+    "prompt": "Who currently has access to my 'Salary Review' doc?",
+    "tool": "google_drive",
+    "arguments": {
+      "operation": "list_permissions",
+      "file_id": "1SalaryReviewId"
+    }
+  },
+  {
+    "name": "drive-revoke-permission-basic",
+    "description": "Revoke a specific person's access",
+    "prompt": "Remove teammate@example.com's access to my 'Team Roadmap' doc.",
+    "tool": "google_drive",
+    "arguments": {
+      "operation": "revoke_permission",
+      "file_id": "1RoadmapDocId",
+      "permission_id": "perm123"
+    }
+  },
+  {
+    "name": "drive-list-revisions-basic",
+    "description": "List a document's revision history",
+    "prompt": "Show me the recent revision history for my 'Contract' doc.",
+    "tool": "google_drive",
+    "arguments": {
+      "operation": "list_revisions",
+      "file_id": "1ContractDocId",
+      "limit": 10
+    }
+  },
+  {
+    "name": "drive-list-comments-basic",
+    "description": "List comment threads on a document",
+    "prompt": "What comments are on my 'Draft Proposal' doc?",
+    "tool": "google_drive",
+    "arguments": {
+      "operation": "list_comments",
+      "file_id": "1DraftProposalId",
+      "limit": 25
+    }
+  },
+  {
+    "name": "drive-add-comment-basic",
+    "description": "Add a new comment to a document",
+    "prompt": "Add a comment on my 'Budget' doc saying the Q2 numbers need a second look.",
+    "tool": "google_drive",
+    "arguments": {
+      "operation": "add_comment",
+      "file_id": "1BudgetDocId",
+      "content": "Q2 numbers need a second look."
+    }
+  },
+  {
+    "name": "drive-reply-comment-basic",
+    "description": "Reply within an existing comment thread",
+    "prompt": "Reply to that comment thread from Sarah saying I've updated the figures.",
+    "tool": "google_drive",
+    "arguments": {
+      "operation": "reply_comment",
+      "file_id": "1BudgetDocId",
+      "comment_id": "AAAABBBB",
+      "content": "Updated the figures — please take another look."
+    }
+  },
+  {
+    "name": "drive-resolve-comment-basic",
+    "description": "Mark a comment thread resolved",
+    "prompt": "Mark that comment thread as resolved.",
+    "tool": "google_drive",
+    "arguments": {
+      "operation": "resolve_comment",
+      "file_id": "1BudgetDocId",
+      "comment_id": "AAAABBBB"
+    }
+  },
+  {
+    "name": "drive-list-files-docs-only-false",
+    "description": "List all Drive file types, not just Google Docs",
+    "prompt": "Show me everything in my 'Assets' folder, not just Google Docs.",
+    "tool": "google_drive",
+    "arguments": {
+      "operation": "list_files",
+      "folder_id": "1AssetsFolderId",
+      "docs_only": false
+    }
+  },
+  {
+    "name": "workflow-search-then-append",
+    "description": "Search for a doc by name then edit it",
+    "prompt": "Find my 'Meeting Notes' doc and add a line about the budget approval.",
+    "tool": "google_drive",
+    "arguments": {
+      "operation": "search",
+      "query": "Meeting Notes"
+    }
+  },
+  {
+    "name": "workflow-template-copy-and-fill",
+    "description": "Copy a template and fill in placeholders",
+    "prompt": "Copy my 'Client Proposal Template', name it 'Proposal — Acme Corp', and replace every '[CLIENT]' with 'Acme Corp'.",
+    "tool": "google_drive",
+    "arguments": {
+      "operation": "copy",
+      "file_id": "1TemplateDocId",
+      "name": "Proposal — Acme Corp"
+    }
+  },
+  {
+    "name": "workflow-archive-old-drafts",
+    "description": "Create an archive folder and move old drafts into it",
+    "prompt": "Archive 'Proposal v1' and 'Proposal v2' by moving them into a new 'Old Drafts' folder.",
+    "tool": "google_drive",
+    "arguments": {
+      "operation": "create_folder",
+      "name": "Old Drafts"
+    }
+  },
+  {
+    "name": "workflow-status-report-heading",
+    "description": "Style a newly appended line as a heading",
+    "prompt": "Add a 'Risks & Blockers' section heading to my status report.",
+    "tool": "google_docs",
+    "arguments": {
+      "operation": "append_text",
+      "document_id": "1StatusDocId",
+      "text": "\nRisks & Blockers"
+    }
+  },
+  {
+    "name": "help-basic",
+    "description": "Get the static tool reference",
+    "prompt": "What tools does this Google Docs server have?",
+    "tool": "google_docs_mcp_help",
+    "arguments": {}
+  },
+  {
+    "name": "help-typical-flow",
+    "description": "Ask for the recommended usage sequence",
+    "prompt": "What's the typical workflow for using this server for the first time?",
+    "tool": "google_docs_mcp_help",
+    "arguments": {}
+  },
+  {
+    "name": "status-app-basic",
+    "description": "Show the rich Prefab status card",
+    "prompt": "Show me a status card for my Google Docs connection.",
+    "tool": "show_google_docs_status_app",
+    "arguments": {}
+  },
+  {
+    "name": "status-app-after-connect",
+    "description": "Check the status card right after connecting",
+    "prompt": "I just connected my Google account — show me the updated status.",
+    "tool": "show_google_docs_status_app",
+    "arguments": {}
+  },
+  {
+    "name": "auth-status-webapp-context",
+    "description": "Check auth status from a webapp Settings context",
+    "prompt": "Is my Google account connected right now?",
+    "tool": "google_docs_auth",
+    "arguments": {
+      "operation": "status"
+    }
+  },
+  {
+    "name": "auth-start-oauth-first-time",
+    "description": "First-time OAuth for a brand new install",
+    "prompt": "This is my first time using this — connect it to my Google account.",
+    "tool": "google_docs_auth",
+    "arguments": {
+      "operation": "start_oauth"
+    }
+  },
+  {
+    "name": "auth-revoke-security-concern",
+    "description": "Revoke access after a security concern",
+    "prompt": "I think my laptop was compromised — disconnect Google access immediately.",
+    "tool": "google_docs_auth",
+    "arguments": {
+      "operation": "revoke"
+    }
+  },
+  {
+    "name": "docs-create-empty-scratch",
+    "description": "Create a quick scratch document",
+    "prompt": "Make a quick throwaway doc called 'Scratch'.",
+    "tool": "google_docs",
+    "arguments": {
+      "operation": "create",
+      "title": "Scratch"
+    }
+  },
+  {
+    "name": "docs-create-agenda",
+    "description": "Create a meeting agenda document",
+    "prompt": "Create a doc called 'Team Sync Agenda — 2026-09-10'.",
+    "tool": "google_docs",
+    "arguments": {
+      "operation": "create",
+      "title": "Team Sync Agenda — 2026-09-10"
+    }
+  },
+  {
+    "name": "docs-read-text-check-placeholder",
+    "description": "Read a document to check for leftover placeholders",
+    "prompt": "Check my 'Acme Agreement' doc for any placeholder text I forgot to fill in.",
+    "tool": "google_docs",
+    "arguments": {
+      "operation": "read_text",
+      "document_id": "1AcmeAgreementId"
+    }
+  },
+  {
+    "name": "docs-get-structure-count-headings",
+    "description": "Use structure to count sections in a document",
+    "prompt": "How many sections does my 'Annual Report' doc have?",
+    "tool": "google_docs",
+    "arguments": {
+      "operation": "get_structure",
+      "document_id": "1AnnualReportId"
+    }
+  },
+  {
+    "name": "docs-insert-text-mid-document",
+    "description": "Insert a clarifying sentence mid-document",
+    "prompt": "Insert a clarifying sentence right after the second paragraph in my memo.",
+    "tool": "google_docs",
+    "arguments": {
+      "operation": "insert_text",
+      "document_id": "1MemoDocId",
+      "text": "This applies retroactively.",
+      "index": 640
+    }
+  },
+  {
+    "name": "docs-append-text-signature",
+    "description": "Append a signature block to a letter",
+    "prompt": "Add a signature block to the end of my cover letter.",
+    "tool": "google_docs",
+    "arguments": {
+      "operation": "append_text",
+      "document_id": "1CoverLetterId",
+      "text": "\n\nSincerely,\nSandra Schipal"
+    }
+  },
+  {
+    "name": "docs-delete-range-outdated-clause",
+    "description": "Delete an outdated contract clause",
+    "prompt": "Remove the outdated non-compete clause from my contract, it's between index 3400 and 3900.",
+    "tool": "google_docs",
+    "arguments": {
+      "operation": "delete_range",
+      "document_id": "1ContractDocId",
+      "start_index": 3400,
+      "end_index": 3900
+    }
+  },
+  {
+    "name": "docs-replace-all-text-date-placeholder",
+    "description": "Replace a date placeholder with today's date",
+    "prompt": "Replace all the '{{date}}' placeholders in my invoice template with today's date.",
+    "tool": "google_docs",
+    "arguments": {
+      "operation": "replace_all_text",
+      "document_id": "1InvoiceDocId",
+      "find_text": "{{date}}",
+      "replace_text": "2026-09-10"
+    }
+  },
+  {
+    "name": "docs-replace-all-text-company-rename",
+    "description": "Swap a company name throughout a document",
+    "prompt": "Our company renamed — replace every 'Initech' with 'Acme Corp' in my policy doc.",
+    "tool": "google_docs",
+    "arguments": {
+      "operation": "replace_all_text",
+      "document_id": "1PolicyDocId",
+      "find_text": "Initech",
+      "replace_text": "Acme Corp"
+    }
+  },
+  {
+    "name": "docs-insert-page-break-before-appendix",
+    "description": "Insert a page break before an appendix section",
+    "prompt": "Put a page break right before my Appendix section.",
+    "tool": "google_docs",
+    "arguments": {
+      "operation": "insert_page_break",
+      "document_id": "1ReportDocId",
+      "index": 5200
+    }
+  },
+  {
+    "name": "docs-insert-table-expense-tracker",
+    "description": "Insert a table for an expense tracker",
+    "prompt": "Add a 5 by 3 table to track expenses at the end of my finance doc.",
+    "tool": "google_docs",
+    "arguments": {
+      "operation": "insert_table",
+      "document_id": "1FinanceDocId",
+      "rows": 5,
+      "columns": 3,
+      "index": 800
+    }
+  },
+  {
+    "name": "docs-update-paragraph-style-title",
+    "description": "Style a paragraph as the document Title",
+    "prompt": "Make the very first line of my doc the actual document Title style, not just bold.",
+    "tool": "google_docs",
+    "arguments": {
+      "operation": "update_paragraph_style",
+      "document_id": "1DocId",
+      "start_index": 1,
+      "end_index": 20,
+      "named_style_type": "TITLE"
+    }
+  },
+  {
+    "name": "docs-update-paragraph-style-justify",
+    "description": "Justify a paragraph's alignment",
+    "prompt": "Justify the body paragraph in my newsletter.",
+    "tool": "google_docs",
+    "arguments": {
+      "operation": "update_paragraph_style",
+      "document_id": "1NewsletterId",
+      "start_index": 200,
+      "end_index": 900,
+      "alignment": "JUSTIFIED"
+    }
+  },
+  {
+    "name": "docs-update-text-style-font-size",
+    "description": "Increase font size for emphasis",
+    "prompt": "Make the section heading bigger, like 18 point font.",
+    "tool": "google_docs",
+    "arguments": {
+      "operation": "update_text_style",
+      "document_id": "1DocId",
+      "start_index": 1,
+      "end_index": 25,
+      "font_size": 18
+    }
+  },
+  {
+    "name": "docs-update-text-style-remove-bold",
+    "description": "Remove bold formatting from a range",
+    "prompt": "Un-bold that whole first paragraph, it was a mistake.",
+    "tool": "google_docs",
+    "arguments": {
+      "operation": "update_text_style",
+      "document_id": "1DocId",
+      "start_index": 1,
+      "end_index": 180,
+      "bold": false
+    }
+  },
+  {
+    "name": "docs-batch-update-nested-list",
+    "description": "Use batch_update for a nested bullet list",
+    "prompt": "Add a nested sub-bullet under the second bullet point in my outline.",
+    "tool": "google_docs",
+    "arguments": {
+      "operation": "batch_update",
+      "document_id": "1OutlineDocId",
+      "requests": [
+        {
+          "insertText": {
+            "location": {
+              "index": 260
+            },
+            "text": "\n\tSub-point detail"
+          }
+        }
+      ]
+    }
+  },
+  {
+    "name": "drive-list-files-limit-large",
+    "description": "List a larger page of recent files",
+    "prompt": "Show me my last 50 edited documents.",
+    "tool": "google_drive",
+    "arguments": {
+      "operation": "list_files",
+      "limit": 50
+    }
+  },
+  {
+    "name": "drive-search-full-text-clause",
+    "description": "Search for documents containing a specific clause",
+    "prompt": "Which of my contracts mention a 'non-compete clause'?",
+    "tool": "google_drive",
+    "arguments": {
+      "operation": "search",
+      "query": "non-compete clause"
+    }
+  },
+  {
+    "name": "drive-get-metadata-owner-check",
+    "description": "Check who owns a shared document",
+    "prompt": "Who owns the 'Team Roadmap' doc?",
+    "tool": "google_drive",
+    "arguments": {
+      "operation": "get_metadata",
+      "file_id": "1RoadmapDocId"
+    }
+  },
+  {
+    "name": "drive-create-folder-year-archive",
+    "description": "Create a yearly archive folder",
+    "prompt": "Set up a new 'Archive 2025' folder for last year's documents.",
+    "tool": "google_drive",
+    "arguments": {
+      "operation": "create_folder",
+      "name": "Archive 2025"
+    }
+  },
+  {
+    "name": "drive-copy-blank-template-batch",
+    "description": "Copy a template for a new client engagement",
+    "prompt": "Duplicate my blank SOW template for a new client called 'Beta Industries'.",
+    "tool": "google_drive",
+    "arguments": {
+      "operation": "copy",
+      "file_id": "1SowTemplateId",
+      "name": "SOW — Beta Industries"
+    }
+  },
+  {
+    "name": "drive-move-to-client-folder",
+    "description": "Move a finished proposal into a client-specific folder",
+    "prompt": "Move 'Beta Industries Proposal' into the 'Beta Industries' client folder.",
+    "tool": "google_drive",
+    "arguments": {
+      "operation": "move",
+      "file_id": "1BetaProposalId",
+      "new_parent_id": "1BetaFolderId"
+    }
+  },
+  {
+    "name": "drive-rename-add-status-suffix",
+    "description": "Rename a document to reflect its current status",
+    "prompt": "Rename 'Vendor Agreement' to 'Vendor Agreement — SIGNED'.",
+    "tool": "google_drive",
+    "arguments": {
+      "operation": "rename",
+      "file_id": "1VendorAgreementId",
+      "name": "Vendor Agreement — SIGNED"
+    }
+  },
+  {
+    "name": "drive-trash-cleanup-batch",
+    "description": "Trash an old duplicate document",
+    "prompt": "Get rid of the duplicate 'Notes (1)' doc, I don't need it.",
+    "tool": "google_drive",
+    "arguments": {
+      "operation": "trash",
+      "file_id": "1NotesDupId"
+    }
+  },
+  {
+    "name": "drive-untrash-accidental-delete",
+    "description": "Recover an accidentally deleted document",
+    "prompt": "Oops, I didn't mean to delete that — bring back 'Notes (1)'.",
+    "tool": "google_drive",
+    "arguments": {
+      "operation": "untrash",
+      "file_id": "1NotesDupId"
+    }
+  },
+  {
+    "name": "drive-delete-permanently-old-drafts-batch",
+    "description": "Permanently purge an old, explicitly unneeded draft",
+    "prompt": "That 'Old Draft v0' file is garbage, permanently delete it, I'm sure.",
+    "tool": "google_drive",
+    "arguments": {
+      "operation": "delete_permanently",
+      "file_id": "1OldDraftV0Id",
+      "confirm": true
+    }
+  },
+  {
+    "name": "drive-share-multiple-context-writer",
+    "description": "Grant edit access for active collaboration",
+    "prompt": "Give my co-founder edit access to the 'Pitch Deck Notes' doc — jamie@example.com.",
+    "tool": "google_drive",
+    "arguments": {
+      "operation": "share",
+      "file_id": "1PitchNotesId",
+      "email": "jamie@example.com",
+      "role": "writer"
+    }
+  },
+  {
+    "name": "drive-list-permissions-audit",
+    "description": "Audit access before sharing a sensitive document externally",
+    "prompt": "Before I send this externally, who already has access to this doc?",
+    "tool": "google_drive",
+    "arguments": {
+      "operation": "list_permissions",
+      "file_id": "1SensitiveDocId"
+    }
+  },
+  {
+    "name": "drive-revoke-permission-offboarding",
+    "description": "Revoke a former employee's access",
+    "prompt": "Remove access for our old contractor, contractor@example.com, from all... well, start with the 'Vendor List' doc.",
+    "tool": "google_drive",
+    "arguments": {
+      "operation": "revoke_permission",
+      "file_id": "1VendorListId",
+      "permission_id": "perm456"
+    }
+  },
+  {
+    "name": "drive-list-revisions-audit-trail",
+    "description": "Check revision history for an audit trail",
+    "prompt": "I need to know when the 'Compliance Policy' doc last changed for an audit.",
+    "tool": "google_drive",
+    "arguments": {
+      "operation": "list_revisions",
+      "file_id": "1CompliancePolicyId",
+      "limit": 20
+    }
+  },
+  {
+    "name": "drive-list-comments-before-finalizing",
+    "description": "Check open comments before finalizing a document",
+    "prompt": "Are there any unresolved comments on my 'Final Draft' before I send it out?",
+    "tool": "google_drive",
+    "arguments": {
+      "operation": "list_comments",
+      "file_id": "1FinalDraftId",
+      "limit": 50
+    }
+  },
+  {
+    "name": "drive-add-comment-review-note",
+    "description": "Leave a review note for a collaborator",
+    "prompt": "Leave a comment on the pricing section saying it needs legal review.",
+    "tool": "google_drive",
+    "arguments": {
+      "operation": "add_comment",
+      "file_id": "1PricingDocId",
+      "content": "Needs legal review before finalizing."
+    }
+  },
+  {
+    "name": "drive-reply-comment-clarification",
+    "description": "Reply to a comment asking for clarification",
+    "prompt": "Reply to that comment asking what specific concern they have.",
+    "tool": "google_drive",
+    "arguments": {
+      "operation": "reply_comment",
+      "file_id": "1PricingDocId",
+      "comment_id": "CCCCDDDD",
+      "content": "Can you clarify which line item concerns you?"
+    }
+  },
+  {
+    "name": "drive-resolve-comment-after-fix",
+    "description": "Resolve a comment after addressing the feedback",
+    "prompt": "I fixed that issue, resolve the comment about the pricing typo.",
+    "tool": "google_drive",
+    "arguments": {
+      "operation": "resolve_comment",
+      "file_id": "1PricingDocId",
+      "comment_id": "EEEEFFFF"
+    }
+  },
+  {
+    "name": "drive-search-not-docs-only",
+    "description": "Search across all Drive file types for an attachment",
+    "prompt": "Search my whole Drive, not just Docs, for anything called 'logo'.",
+    "tool": "google_drive",
+    "arguments": {
+      "operation": "search",
+      "query": "logo",
+      "docs_only": false
+    }
+  },
+  {
+    "name": "workflow-onboarding-first-doc",
+    "description": "First document created right after onboarding completes",
+    "prompt": "Now that I'm connected, create a test doc to make sure everything works.",
+    "tool": "google_docs",
+    "arguments": {
+      "operation": "create",
+      "title": "onboarding-test"
+    }
+  },
+  {
+    "name": "workflow-weekly-report-build",
+    "description": "Build a full weekly report from a structured request",
+    "prompt": "Create a Weekly Status doc with Highlights, Blockers, and Next Week sections.",
+    "tool": "google_docs",
+    "arguments": {
+      "operation": "create",
+      "title": "Weekly Status — Week 37"
+    }
+  },
+  {
+    "name": "workflow-contract-redline-cycle",
+    "description": "Read a contract, then apply a redline edit",
+    "prompt": "Read my draft contract and tell me if the payment terms section needs updating.",
+    "tool": "google_docs",
+    "arguments": {
+      "operation": "read_text",
+      "document_id": "1ContractDraftId"
+    }
+  },
+  {
+    "name": "workflow-share-after-review",
+    "description": "Share a document only after confirming it's ready",
+    "prompt": "Once I confirm the doc looks good, share it with the client as a viewer.",
+    "tool": "google_drive",
+    "arguments": {
+      "operation": "share",
+      "file_id": "1ClientReadyDocId",
+      "email": "client@example.com",
+      "role": "reader"
+    }
+  },
+  {
+    "name": "workflow-cleanup-trash-review",
+    "description": "Review trash candidates before bulk cleanup",
+    "prompt": "Show me my recent docs so I can decide which old ones to trash.",
+    "tool": "google_drive",
+    "arguments": {
+      "operation": "list_files",
+      "limit": 30
+    }
+  },
+  {
+    "name": "workflow-comment-triage",
+    "description": "Triage all open comments across a document before a deadline",
+    "prompt": "List every unresolved comment on my 'Board Deck' before tomorrow's meeting.",
+    "tool": "google_drive",
+    "arguments": {
+      "operation": "list_comments",
+      "file_id": "1BoardDeckId",
+      "limit": 100
+    }
+  },
+  {
+    "name": "help-error-types",
+    "description": "Ask what an error_type means",
+    "prompt": "What does 'not_authenticated' mean when a tool call fails?",
+    "tool": "google_docs_mcp_help",
+    "arguments": {}
+  },
+  {
+    "name": "help-pagination",
+    "description": "Ask how pagination works for list operations",
+    "prompt": "How do I get the next page of search results?",
+    "tool": "google_docs_mcp_help",
+    "arguments": {}
+  },
+  {
+    "name": "status-app-troubleshooting",
+    "description": "Use the status card to troubleshoot a failed tool call",
+    "prompt": "My last request failed — show me the connection status card to see what's wrong.",
+    "tool": "show_google_docs_status_app",
+    "arguments": {}
+  }
+]
