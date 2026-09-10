@@ -1,0 +1,45 @@
+name: CI
+
+on:
+  push:
+    branches: [main, master]
+  pull_request:
+
+jobs:
+  build:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: astral-sh/setup-uv@v3
+
+      - name: Install Python deps
+        run: uv sync --extra dev
+
+      - name: Ruff check
+        run: uv run ruff check src/ tests/
+
+      - name: Ruff format check
+        run: uv run ruff format --check src/ tests/
+
+      - name: Pytest
+        run: uv run pytest -q
+
+      - name: Setup Bun
+        uses: oven-sh/setup-bun@v2
+
+      - name: Webapp install
+        working-directory: webapp
+        run: bun install --frozen-lockfile
+
+      - name: Webapp typecheck
+        working-directory: webapp
+        run: bunx tsc -b
+
+      - name: Webapp lint
+        working-directory: webapp
+        run: bunx biome check .
+
+      - name: Webapp build
+        working-directory: webapp
+        run: bun run build
