@@ -2,7 +2,7 @@
 
 mod backend;
 
-use backend::{spawn_backend, BackendProcess};
+use backend::{spawn_backend, stop_managed_child, BackendProcess};
 use tauri::{Emitter, Manager};
 
 #[tauri::command]
@@ -28,10 +28,16 @@ fn main() {
         .build(tauri::generate_context!())
         .expect("error building tauri application")
         .run(|app, event| {
-            if let tauri::RunEvent::Exit = event {
-                if let Some(mut child) = app.state::<BackendProcess>().0.lock().unwrap().take() {
-                    let _ = child.kill();
+            // Kill the spawned backend on BOTH events, not just Exit — a
+            // window close can fire ExitRequested without a later Exit in
+            // some shutdown paths, orphaning the backend child, which then
+            // keeps the port locked on stale code forever (see
+            // TAURI_PRODUCTION_PITFALLS.md §G).
+            match event {
+                tauri::RunEvent::Exit | tauri::RunEvent::ExitRequested { .. } => {
+                    stop_managed_child(app.state::<BackendProcess>().inner());
                 }
+                _ => {}
             }
         });
 }

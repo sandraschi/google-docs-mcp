@@ -13,6 +13,10 @@ pub struct BackendProcess(pub Mutex<Option<Child>>);
 
 const BACKEND_NAME: &str = "google-docs-mcp-backend.exe";
 const BACKEND_PORT: u16 = 11972;
+// Process-name stems (no .exe — Get-Process's ProcessName omits it) used to
+// scope free_port()'s taskkill to our own binaries only.
+const BACKEND_STEM: &str = "google-docs-mcp-backend";
+const OPERATOR_STEM: &str = "google-docs-mcp-operator";
 
 fn dev_backend_path() -> Option<PathBuf> {
     if !cfg!(debug_assertions) {
@@ -96,10 +100,21 @@ pub fn materialize_backend(app: &AppHandle) -> Result<PathBuf, String> {
 }
 
 fn free_port(port: u16) {
+    // Only ever kill a process that is BOTH bound to our port AND actually
+    // named after our own backend/operator binaries. A blind
+    // `Get-NetTCPConnection | taskkill /PID` (no name check) can kill an
+    // unrelated process that happens to share the port range on this
+    // machine — see TAURI_PRODUCTION_PITFALLS.md §14 qcad-mcp postmortem
+    // item 2, where this exact pattern killed Docker Desktop's wslrelay.
     #[cfg(windows)]
     {
         let script = format!(
-            "Get-NetTCPConnection -LocalPort {port} -ErrorAction SilentlyContinue | ForEach-Object {{ taskkill /F /PID $_.OwningProcess /T 2>$null }}"
+            "Get-NetTCPConnection -LocalPort {port} -ErrorAction SilentlyContinue | ForEach-Object {{ \
+                $procName = (Get-Process -Id $_.OwningProcess -ErrorAction SilentlyContinue).ProcessName; \
+                if ($procName -eq '{BACKEND_STEM}' -or $procName -eq '{OPERATOR_STEM}') {{ \
+                    taskkill /F /PID $_.OwningProcess /T 2>$null \
+                }} \
+            }}"
         );
         let _ = Command::new("powershell.exe")
             .args(["-NoProfile", "-Command", &script])
@@ -110,7 +125,7 @@ fn free_port(port: u16) {
     }
 }
 
-fn stop_managed_child(state: &BackendProcess) {
+pub fn stop_managed_child(state: &BackendProcess) {
     if let Some(mut child) = state.0.lock().unwrap().take() {
         let _ = child.kill();
         let _ = child.wait();
