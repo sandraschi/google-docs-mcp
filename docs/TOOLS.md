@@ -54,6 +54,8 @@ Google Drive API v3 file lifecycle.
 | `add_comment` | `file_id`, `content` | — |
 | `reply_comment` | `file_id`, `comment_id`, `content` | — |
 | `resolve_comment` | `file_id`, `comment_id` | — |
+| `export` | `file_id`, `output_path` | `export_format` (pdf/docx/odt/txt/html/rtf/epub, default pdf) |
+| `import_file` | `file_path` | `name`, `folder_id` |
 
 ## `google_docs_mcp_help()`
 

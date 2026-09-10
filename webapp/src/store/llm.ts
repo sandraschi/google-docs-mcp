@@ -1,5 +1,6 @@
 import { create } from "zustand";
 import { type LlmProvider, api } from "../lib/api";
+import { pickPreferredModel } from "../lib/model-preference";
 
 interface LlmState {
   providers: LlmProvider[];
@@ -7,6 +8,7 @@ interface LlmState {
   selectedProvider: string;
   selectedModel: string;
   models: string[];
+  loadedModels: string[];
   probe: () => Promise<void>;
   selectProvider: (name: string) => Promise<void>;
   selectModel: (name: string) => void;
@@ -21,6 +23,7 @@ export const useLlmStore = create<LlmState>((set, get) => ({
   selectedProvider: localStorage.getItem(LS_PROVIDER) ?? "",
   selectedModel: localStorage.getItem(LS_MODEL) ?? "",
   models: [],
+  loadedModels: [],
 
   probe: async () => {
     set({
@@ -53,15 +56,23 @@ export const useLlmStore = create<LlmState>((set, get) => ({
 
   selectProvider: async (name: string) => {
     localStorage.setItem(LS_PROVIDER, name);
-    set({ selectedProvider: name, models: [] });
+    set({ selectedProvider: name, models: [], loadedModels: [] });
     try {
-      const { models } = await api.llmModels(name);
+      const { models, loaded } = await api.llmModels(name);
       const saved = localStorage.getItem(LS_MODEL);
-      const model = saved && models.includes(saved) ? saved : (models[0] ?? "");
-      set({ models, selectedModel: model });
+      // Resident-first: never override a model already loaded in Ollama with
+      // a different one just because it's saved/preferred — that evicts it
+      // and forces a ~30s cold reload (BUGS_DEPOT.md BUG-030).
+      const model =
+        saved &&
+        models.includes(saved) &&
+        (loaded.length === 0 || loaded.includes(saved))
+          ? saved
+          : pickPreferredModel(models, loaded);
+      set({ models, loadedModels: loaded, selectedModel: model });
       if (model) localStorage.setItem(LS_MODEL, model);
     } catch {
-      set({ models: [] });
+      set({ models: [], loadedModels: [] });
     }
   },
 

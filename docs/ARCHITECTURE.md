@@ -51,3 +51,20 @@ Installed-app (desktop) flow via `google-auth-oauthlib.flow.InstalledAppFlow.run
 — a loopback HTTP server on an ephemeral (or configured) port receives the redirect after the
 user consents in their browser. This is the only correct flow for a process that isn't a public
 web server; see `docs/ONBOARDING.md` for the Cloud Console setup steps.
+
+### OAuth client configuration — two sources
+
+The OAuth client id/secret can come from either `GOOGLE_DOCS_MCP_CLIENT_ID`/`_SECRET`
+environment variables (set via `claude_desktop_config.json`) **or** a local file,
+`data/oauth_client.json`, written by the webapp's Onboarding wizard (`POST
+/api/onboarding/client`) for people who never touch the Claude Desktop config directly. Env
+vars always win when both are present — `config.py`'s `Settings.client_source` reports which
+one is actually active. The file is gitignored and 0600 on POSIX (best-effort on Windows).
+
+## Apps Hub (fleet discovery)
+
+`GET /api/apps` is specific to Sandra's own `D:\Dev\repos` fleet layout: it reads the sibling
+`mcp-central-docs/operations/WEBAPP_PORTS.md` registry, extracts every row whose description
+contains "Frontend", and probes each port with a 0.6s timeout in parallel. On any machine
+without that sibling repo, it returns `{"available": false, "items": []}` rather than erroring
+— the webapp's Apps Hub page renders an explicit "not applicable here" message in that case.

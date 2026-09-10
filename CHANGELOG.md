@@ -1,5 +1,23 @@
 # Changelog
 
+## [Unreleased]
+
+- `google_drive`: added `export` (pdf/docx/odt/txt/html/rtf/epub, 10 MB Drive API limit) and
+  `import_file` (.docx/.odt/.txt/.md/.html/.rtf → new Google Doc) operations, plus matching
+  webapp UI on the Documents page (per-file export dropdown, Import button with real upload).
+- Webapp: added **Apps Hub** page (`/apps`) — dynamic fleet discovery, probes other running
+  fleet webapps from the shared port registry.
+- Webapp: added a dedicated **Onboarding wizard** (`/onboarding`) — walks through Google Cloud
+  Console setup, lets you paste the OAuth client id/secret (persisted to
+  `data/oauth_client.json`, gitignored) without editing `claude_desktop_config.json` directly,
+  then triggers the browser consent flow. Dashboard's red CTA now points here instead of
+  Settings.
+- Fixed: local LLM model selection was picking `models[0]` with no residency check — the exact
+  anti-pattern documented as BUG-030 in the fleet bugs depot. Now resident-first: never switches
+  away from a model already loaded in Ollama.
+- `config.py`: OAuth client id/secret now fall back to a local JSON file when env vars aren't
+  set (env vars still win when both are present) — backs the onboarding wizard above.
+
 ## [0.1.0] - 2026-09-10
 
 Initial release.

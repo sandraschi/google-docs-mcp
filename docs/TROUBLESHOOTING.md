@@ -9,9 +9,11 @@
 **Fix**: `winget install astral-sh.uv` then restart your terminal.
 
 ## Every tool call returns `error_type: "not_configured"`
-**Cause**: `GOOGLE_DOCS_MCP_CLIENT_ID` / `GOOGLE_DOCS_MCP_CLIENT_SECRET` are not set.
+**Cause**: `GOOGLE_DOCS_MCP_CLIENT_ID` / `GOOGLE_DOCS_MCP_CLIENT_SECRET` are not set (and no
+`data/oauth_client.json` from the onboarding wizard either).
 **Fix**: Follow `docs/ONBOARDING.md` to create a Google Cloud OAuth client (Desktop app
-type), then set both env vars in `claude_desktop_config.json`.
+type), then either set both env vars in `claude_desktop_config.json`, **or** open the webapp's
+Onboarding page (`/onboarding`) and paste the client id/secret into the Connect step.
 
 ## Every tool call returns `error_type: "not_authenticated"`
 **Cause**: OAuth client is configured but no valid token is cached yet (or it expired and

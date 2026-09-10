@@ -164,6 +164,7 @@ export default function Settings() {
               {llm.models.map((m) => (
                 <option key={m} value={m}>
                   {m}
+                  {llm.loadedModels.includes(m) ? " (loaded)" : ""}
                 </option>
               ))}
             </select>

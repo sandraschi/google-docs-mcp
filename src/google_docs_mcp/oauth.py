@@ -39,6 +39,7 @@ class AuthStatus:
     authenticated: bool
     scopes: list[str]
     token_path: str
+    client_source: str
     expiry: str | None = None
 
 
@@ -131,6 +132,7 @@ def get_status() -> AuthStatus:
         authenticated=bool(creds and creds.valid),
         scopes=settings.scopes,
         token_path=str(settings.token_path),
+        client_source=settings.client_source,
         expiry=expiry,
     )
 

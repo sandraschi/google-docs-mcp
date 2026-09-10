@@ -14,7 +14,10 @@ engine only; add cloud providers as a follow-up if the webapp gets real usage.
 
 from __future__ import annotations
 
+import asyncio
 import logging
+import re
+import tempfile
 from dataclasses import asdict
 from pathlib import Path
 from typing import Any
@@ -25,12 +28,13 @@ from starlette.concurrency import run_in_threadpool
 from starlette.middleware import Middleware
 from starlette.middleware.cors import CORSMiddleware
 from starlette.requests import Request
-from starlette.responses import JSONResponse, PlainTextResponse
+from starlette.responses import JSONResponse, PlainTextResponse, Response
 from starlette.routing import Mount, Route
 
 from google_docs_mcp import __version__, oauth
+from google_docs_mcp.config import settings
 from google_docs_mcp.server import mcp, mcp_http_app
-from google_docs_mcp.tools.drive_tool import google_drive
+from google_docs_mcp.tools.drive_tool import _EXPORT_MIME_MAP, google_drive
 
 logger = logging.getLogger("google_docs_mcp.backend")
 
@@ -43,6 +47,13 @@ _LOCAL_PROVIDERS = [
 ]
 
 _LOG_BUFFER: list[str] = []
+
+# Sibling fleet repo root — this feature is specific to Sandra's D:\Dev\repos
+# fleet layout (many MCP servers, one shared port registry). On any other
+# machine this path simply won't exist and Apps Hub degrades to an empty,
+# explicitly-labeled list rather than erroring — see api_apps().
+_WEBAPP_PORTS_MD = Path(__file__).resolve().parents[4] / "mcp-central-docs" / "operations" / "WEBAPP_PORTS.md"
+_PORT_ROW_RE = re.compile(r"^\|\s*(\d{4,5})\s*\|\s*([\w.-]+)\s*\|\s*(.*?)\s*\|\s*$")
 
 
 class BufferLogHandler(logging.Handler):
@@ -137,22 +148,33 @@ async def api_llm_providers(_request: Request) -> JSONResponse:
 
 
 async def api_llm_models(request: Request) -> JSONResponse:
+    """List installed models, and — for Ollama — which are currently loaded.
+
+    `loaded` lets the frontend pick resident-first (never evict a model that's
+    already warm in VRAM) instead of blindly defaulting to models[0]. See
+    templates/llm-detect/model-preference.ts and BUGS_DEPOT.md BUG-030.
+    """
     provider = request.query_params.get("provider", "").lower()
     match = next((p for p in _LOCAL_PROVIDERS if p["name"].lower() == provider), None)
     if not match:
-        return JSONResponse({"models": [], "error": f"unknown provider '{provider}'"}, status_code=400)
+        return JSONResponse(
+            {"models": [], "loaded": [], "error": f"unknown provider '{provider}'"}, status_code=400
+        )
     base = f"http://127.0.0.1:{match['port']}"
     try:
         async with httpx.AsyncClient() as client:
             resp = await client.get(f"{base}{match['probe']}", timeout=3.0)
             data = resp.json()
+            loaded: list[str] = []
+            if match["kind"] == "ollama":
+                models = [m["name"] for m in data.get("models", [])]
+                ps_resp = await client.get(f"{base}/api/ps", timeout=3.0)
+                loaded = [m["name"] for m in ps_resp.json().get("models", [])]
+            else:
+                models = [m["id"] for m in data.get("data", [])]
     except httpx.HTTPError:
-        return JSONResponse({"models": []})
-    if match["kind"] == "ollama":
-        models = [m["name"] for m in data.get("models", [])]
-    else:
-        models = [m["id"] for m in data.get("data", [])]
-    return JSONResponse({"models": models})
+        return JSONResponse({"models": [], "loaded": []})
+    return JSONResponse({"models": models, "loaded": loaded})
 
 
 async def api_llm_chat(request: Request) -> JSONResponse:
@@ -215,6 +237,36 @@ async def api_auth_revoke(_request: Request) -> JSONResponse:
     return JSONResponse({"success": True, "revoked": revoked})
 
 
+async def api_onboarding_client(request: Request) -> JSONResponse:
+    """POST — persist an OAuth client id/secret pasted into the onboarding wizard.
+
+    A running process can't set its own future environment variables, so this
+    writes to `data/oauth_client.json` (0600, gitignored) instead — read as a
+    fallback by config.py whenever the env vars aren't set. Env vars always
+    win if both are present, so a Claude Desktop config.json setup is never
+    silently overridden by a stale wizard entry.
+    """
+    body = await request.json()
+    client_id = str(body.get("client_id", "")).strip()
+    client_secret = str(body.get("client_secret", "")).strip()
+    if not client_id or not client_secret:
+        return JSONResponse(
+            {
+                "success": False,
+                "error": "client_id and client_secret are both required",
+                "error_type": "validation",
+            },
+            status_code=400,
+        )
+    settings.write_local_client(client_id, client_secret)
+    return JSONResponse({"success": True, "data": asdict(oauth.get_status())})
+
+
+async def api_onboarding_client_clear(_request: Request) -> JSONResponse:
+    cleared = settings.clear_local_client()
+    return JSONResponse({"success": True, "cleared": cleared, "data": asdict(oauth.get_status())})
+
+
 async def api_documents(request: Request) -> JSONResponse:
     """Domain page backing endpoint — reuses the real `google_drive` tool function
     directly (not a duplicate REST reimplementation) so the webapp and the MCP
@@ -225,6 +277,102 @@ async def api_documents(request: Request) -> JSONResponse:
         operation="search" if query else "list_files", query=query, cursor=cursor, limit=25
     )
     return JSONResponse(result)
+
+
+async def api_document_export(request: Request) -> Response:
+    """Stream a Google Doc export straight to the browser as a download.
+
+    Reuses the `google_drive` tool's export operation (writes to a temp file,
+    then this handler reads it back and cleans up) rather than duplicating
+    the Drive API export call — the webapp and the MCP tool surface share
+    exactly one code path.
+    """
+    file_id = request.path_params["file_id"]
+    export_format = request.query_params.get("format", "pdf")
+    if export_format not in _EXPORT_MIME_MAP:
+        return JSONResponse({"error": f"unsupported format '{export_format}'"}, status_code=400)
+
+    with tempfile.TemporaryDirectory() as tmp:
+        dest = Path(tmp) / f"export.{export_format}"
+        result = await google_drive(
+            operation="export", file_id=file_id, export_format=export_format, output_path=str(dest)
+        )
+        if not result.get("success"):
+            status = 404 if result.get("error_type") == "not_found" else 400
+            return JSONResponse(result, status_code=status)
+        data = dest.read_bytes()
+
+    return Response(
+        content=data,
+        media_type=_EXPORT_MIME_MAP[export_format],
+        headers={"Content-Disposition": f'attachment; filename="{file_id}.{export_format}"'},
+    )
+
+
+async def api_document_import(request: Request) -> JSONResponse:
+    """Upload a local file (multipart/form-data) and convert it into a Google Doc."""
+    form = await request.form()
+    upload = form.get("file")
+    if upload is None or not hasattr(upload, "filename"):
+        return JSONResponse(
+            {"success": False, "error": "file is required", "error_type": "validation"}, status_code=400
+        )
+
+    name = form.get("name") or None
+    folder_id = form.get("folder_id") or None
+    suffix = Path(upload.filename or "upload").suffix
+
+    with tempfile.TemporaryDirectory() as tmp:
+        dest = Path(tmp) / f"upload{suffix}"
+        dest.write_bytes(await upload.read())
+        result = await google_drive(
+            operation="import_file", file_path=str(dest), name=name, folder_id=folder_id
+        )
+
+    status = 200 if result.get("success") else 400
+    return JSONResponse(result, status_code=status)
+
+
+async def _probe_app(client: httpx.AsyncClient, name: str, port: int) -> dict[str, Any] | None:
+    try:
+        resp = await client.get(f"http://127.0.0.1:{port}/", timeout=0.6)
+        if resp.status_code >= 500:
+            return None
+    except httpx.HTTPError:
+        return None
+    return {"name": name, "port": port, "url": f"http://127.0.0.1:{port}/"}
+
+
+async def api_apps(_request: Request) -> JSONResponse:
+    """Dynamic fleet discovery — probe other frontends registered in WEBAPP_PORTS.md.
+
+    Fleet-specific (see module-level _WEBAPP_PORTS_MD comment): returns an
+    explicit `available: false` rather than an error when the shared registry
+    isn't on disk, so this never looks like a broken feature on a non-fleet
+    checkout of this repo.
+    """
+    if not _WEBAPP_PORTS_MD.is_file():
+        return JSONResponse({"available": False, "items": []})
+
+    frontends: dict[int, str] = {}
+    for line in _WEBAPP_PORTS_MD.read_text(encoding="utf-8", errors="ignore").splitlines():
+        m = _PORT_ROW_RE.match(line)
+        if not m:
+            continue
+        port_str, repo, desc = m.groups()
+        if "frontend" not in desc.lower():
+            continue
+        port = int(port_str)
+        if port == settings.backend_port + 1:
+            continue  # skip ourselves — no point linking to the page you're already on
+        frontends[port] = repo
+
+    limits = httpx.Limits(max_connections=60)
+    async with httpx.AsyncClient(limits=limits) as client:
+        results = await asyncio.gather(*(_probe_app(client, repo, port) for port, repo in frontends.items()))
+
+    items = sorted((r for r in results if r), key=lambda r: r["name"])
+    return JSONResponse({"available": True, "items": items})
 
 
 async def api_logs(_request: Request) -> JSONResponse:
@@ -242,10 +390,15 @@ app = Starlette(
         Route("/api/auth/status", api_auth_status),
         Route("/api/auth/start", api_auth_start, methods=["POST"]),
         Route("/api/auth/revoke", api_auth_revoke, methods=["POST"]),
+        Route("/api/onboarding/client", api_onboarding_client, methods=["POST"]),
+        Route("/api/onboarding/client", api_onboarding_client_clear, methods=["DELETE"]),
         Route("/api/llm/providers", api_llm_providers),
         Route("/api/llm/models", api_llm_models),
         Route("/api/llm/chat", api_llm_chat, methods=["POST"]),
         Route("/api/documents", api_documents),
+        Route("/api/documents/import", api_document_import, methods=["POST"]),
+        Route("/api/documents/{file_id}/export", api_document_export),
+        Route("/api/apps", api_apps),
         Route("/api/logs", api_logs),
         Mount("/mcp", app=mcp_http_app),
     ],

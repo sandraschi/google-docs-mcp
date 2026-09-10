@@ -49,6 +49,8 @@ export type DriveFile = {
   webViewLink?: string;
 };
 
+export type FleetApp = { name: string; port: number; url: string };
+
 export type DriveResult = {
   success: boolean;
   error?: string;
@@ -75,10 +77,13 @@ export const api = {
     fetch(`${API_BASE}/skill/${name}`).then((r) => r.text()),
   llmProviders: () => getJson<{ local: LlmProvider[] }>("/api/llm/providers"),
   llmModels: (provider: string) =>
-    getJson<{ models: string[] }>(`/api/llm/models?provider=${provider}`),
+    getJson<{ models: string[]; loaded: string[] }>(
+      `/api/llm/models?provider=${provider}`,
+    ),
   logs: () => getJson<{ items: string[] }>("/api/logs"),
   documents: (query?: string) =>
     getJson<DriveResult>(
       `/api/documents${query ? `?query=${encodeURIComponent(query)}` : ""}`,
     ),
+  apps: () => getJson<{ available: boolean; items: FleetApp[] }>("/api/apps"),
 };

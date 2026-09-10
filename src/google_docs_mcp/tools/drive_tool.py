@@ -10,9 +10,11 @@ boundary, per TOOL_DESIGN_STANDARDS.md §1.
 
 from __future__ import annotations
 
+from pathlib import Path
 from typing import Annotated, Any, Literal
 
 from googleapiclient.errors import HttpError
+from googleapiclient.http import MediaFileUpload
 from pydantic import Field
 
 from google_docs_mcp.google_client import get_drive_service, http_error_to_dict
@@ -37,12 +39,39 @@ DriveOperation = Literal[
     "add_comment",
     "reply_comment",
     "resolve_comment",
+    "export",
+    "import_file",
 ]
 
 GOOGLE_DOC_MIME = "application/vnd.google-apps.document"
 GOOGLE_FOLDER_MIME = "application/vnd.google-apps.folder"
 
 _FILE_FIELDS = "id, name, mimeType, modifiedTime, createdTime, size, webViewLink, parents, trashed, owners"
+
+ExportFormat = Literal["pdf", "docx", "odt", "txt", "html", "rtf", "epub"]
+
+_EXPORT_MIME_MAP: dict[str, str] = {
+    "pdf": "application/pdf",
+    "docx": "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+    "odt": "application/vnd.oasis.opendocument.text",
+    "txt": "text/plain",
+    "html": "text/html",
+    "rtf": "application/rtf",
+    "epub": "application/epub+zip",
+}
+
+# Source formats Drive will auto-convert into a Google Doc on import. Markdown
+# has no native Drive mimetype — it's imported as plain text, so its literal
+# `#`/`*` syntax lands as-is in the new doc rather than being rendered.
+_IMPORT_MIME_MAP: dict[str, str] = {
+    ".docx": "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+    ".odt": "application/vnd.oasis.opendocument.text",
+    ".txt": "text/plain",
+    ".md": "text/plain",
+    ".html": "text/html",
+    ".htm": "text/html",
+    ".rtf": "application/rtf",
+}
 
 
 def _not_ready(exc: NotConfiguredError | NotAuthenticatedError) -> dict[str, Any]:
@@ -127,6 +156,21 @@ async def google_drive(
     content: Annotated[
         str | None, Field(description="Comment/reply body text. Required for: add_comment, reply_comment.")
     ] = None,
+    export_format: Annotated[
+        ExportFormat,
+        Field(description="Target format for export. Default 'pdf'."),
+    ] = "pdf",
+    output_path: Annotated[
+        str | None,
+        Field(description="Local filesystem path to write the exported file to. Required for: export."),
+    ] = None,
+    file_path: Annotated[
+        str | None,
+        Field(
+            description="Local filesystem path to upload. Required for: import_file. Supported source "
+            "extensions: .docx, .odt, .txt, .md (imported as plain text), .html, .htm, .rtf."
+        ),
+    ] = None,
 ) -> dict[str, Any]:
     """[RATIONALE] Portmanteau over Drive API v3 `files`, `permissions`, `revisions`,
     and `comments` resources scoped to Google Docs file management.
@@ -150,6 +194,9 @@ async def google_drive(
     - add_comment(file_id, content)
     - reply_comment(file_id, comment_id, content)
     - resolve_comment(file_id, comment_id) — marks the comment thread resolved
+    - export(file_id, export_format, output_path) — download a Google Doc as pdf/docx/odt/txt/html/rtf/epub
+    - import_file(file_path, name?, folder_id?) — upload a local .docx/.odt/.txt/.md/.html/.rtf file,
+      converted into a new Google Doc
 
     ## Return Format
     On success: `{"success": true, "message": str, "data": {...}}`. Paginated operations
@@ -165,6 +212,10 @@ async def google_drive(
     await google_drive(operation="share", file_id="1AbC...", email="teammate@example.com",
                         role="commenter")
     await google_drive(operation="delete_permanently", file_id="1AbC...", confirm=True)
+    await google_drive(operation="export", file_id="1AbC...", export_format="pdf",
+                        output_path="C:/Users/me/Downloads/report.pdf")
+    await google_drive(operation="import_file", file_path="C:/Users/me/Downloads/notes.docx",
+                        name="Imported Notes")
     ```
 
     Notes:
@@ -172,6 +223,11 @@ async def google_drive(
       anything recoverable.
     - `docs_only=True` (the default) filters to `mimeType='application/vnd.google-apps.document'`;
       set False to see all Drive file types in the folder.
+    - `export` is a Drive API v3 `files.export` call with a **10 MB** output size limit — for
+      larger documents, export in a smaller/simpler format (`txt`/`html`) or split the document.
+    - `import_file` on a `.md` source imports the literal Markdown text (Drive has no native
+      Markdown converter) — headings/lists won't render as Docs formatting unless you follow up
+      with `google_docs` style operations.
     """
     try:
         service = get_drive_service()
@@ -231,6 +287,35 @@ async def google_drive(
                 body["parents"] = [folder_id]
             created = service.files().create(body=body, fields=_FILE_FIELDS).execute()
             return {"success": True, "message": f"Created folder '{name}'.", "data": {"file": created}}
+
+        if operation == "import_file":
+            if not file_path:
+                return {"success": False, "error": "file_path is required", "error_type": "validation"}
+            src = Path(file_path)
+            if not src.is_file():
+                return {
+                    "success": False,
+                    "error": f"file not found: {src}",
+                    "error_type": "validation",
+                }
+            source_mime = _IMPORT_MIME_MAP.get(src.suffix.lower())
+            if not source_mime:
+                return {
+                    "success": False,
+                    "error": f"unsupported source extension '{src.suffix}'",
+                    "error_type": "validation",
+                    "suggestions": [f"Supported: {', '.join(sorted(_IMPORT_MIME_MAP))}"],
+                }
+            body = {"name": name or src.stem, "mimeType": GOOGLE_DOC_MIME}
+            if folder_id:
+                body["parents"] = [folder_id]
+            media = MediaFileUpload(str(src), mimetype=source_mime, resumable=False)
+            created = service.files().create(body=body, media_body=media, fields=_FILE_FIELDS).execute()
+            return {
+                "success": True,
+                "message": f"Imported '{src.name}' as Google Doc '{body['name']}'.",
+                "data": {"file": created},
+            }
 
         if not file_id:
             return {"success": False, "error": "file_id is required", "error_type": "validation"}
@@ -404,6 +489,20 @@ async def google_drive(
                 .execute()
             )
             return {"success": True, "message": "Comment resolved.", "data": {"reply": reply}}
+
+        if operation == "export":
+            if not output_path:
+                return {"success": False, "error": "output_path is required", "error_type": "validation"}
+            mime = _EXPORT_MIME_MAP[export_format]
+            data = service.files().export(fileId=file_id, mimeType=mime).execute()
+            dest = Path(output_path)
+            dest.parent.mkdir(parents=True, exist_ok=True)
+            dest.write_bytes(data)
+            return {
+                "success": True,
+                "message": f"Exported to {dest} ({len(data)} bytes, {export_format}).",
+                "data": {"output_path": str(dest), "format": export_format, "size_bytes": len(data)},
+            }
 
         return {"success": False, "error": f"Unknown operation '{operation}'", "error_type": "validation"}
 

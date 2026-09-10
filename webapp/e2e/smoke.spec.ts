@@ -33,6 +33,8 @@ test("all sidebar nav routes render without 404s or console errors", async ({
     ["tools-page", "#/tools"],
     ["skills-page", "#/skills"],
     ["chat-page", "#/chat"],
+    ["apps-page", "#/apps"],
+    ["onboarding-page", "#/onboarding"],
     ["settings-page", "#/settings"],
     ["help-page", "#/help"],
     ["logs-page", "#/logs"],

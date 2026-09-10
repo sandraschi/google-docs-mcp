@@ -67,3 +67,59 @@ async def test_limit_is_clamped(configured_env, mock_drive_service, limit, expec
     await google_drive(operation="list_files", limit=limit)
     _, kwargs = mock_drive_service.files().list.call_args
     assert kwargs["pageSize"] == expected
+
+
+async def test_export_requires_output_path(configured_env, mock_drive_service):
+    result = await google_drive(operation="export", file_id="1", output_path=None)
+    assert result["success"] is False
+    assert result["error_type"] == "validation"
+
+
+async def test_export_writes_file(configured_env, mock_drive_service, tmp_path):
+    mock_drive_service.files().export().execute.return_value = b"%PDF-1.4 fake pdf bytes"
+    dest = tmp_path / "out" / "report.pdf"
+    result = await google_drive(operation="export", file_id="1", export_format="pdf", output_path=str(dest))
+    assert result["success"] is True
+    assert dest.exists()
+    assert dest.read_bytes() == b"%PDF-1.4 fake pdf bytes"
+    assert result["data"]["size_bytes"] == len(b"%PDF-1.4 fake pdf bytes")
+
+
+async def test_import_file_requires_existing_file(configured_env, mock_drive_service, tmp_path):
+    missing = tmp_path / "missing.docx"
+    result = await google_drive(operation="import_file", file_path=str(missing))
+    assert result["success"] is False
+    assert result["error_type"] == "validation"
+
+
+async def test_import_file_rejects_unsupported_extension(configured_env, mock_drive_service, tmp_path):
+    src = tmp_path / "notes.exe"
+    src.write_bytes(b"not a real doc")
+    result = await google_drive(operation="import_file", file_path=str(src))
+    assert result["success"] is False
+    assert "unsupported source extension" in result["error"]
+
+
+async def test_import_file_uploads_and_converts(configured_env, mock_drive_service, tmp_path):
+    src = tmp_path / "notes.txt"
+    src.write_text("hello world")
+    mock_drive_service.files().create().execute.return_value = {
+        "id": "newdoc123",
+        "name": "notes",
+        "mimeType": "application/vnd.google-apps.document",
+    }
+    result = await google_drive(operation="import_file", file_path=str(src))
+    assert result["success"] is True
+    assert result["data"]["file"]["id"] == "newdoc123"
+    _, kwargs = mock_drive_service.files().create.call_args
+    assert kwargs["body"]["mimeType"] == "application/vnd.google-apps.document"
+    assert kwargs["body"]["name"] == "notes"
+
+
+async def test_import_file_uses_explicit_name(configured_env, mock_drive_service, tmp_path):
+    src = tmp_path / "notes.txt"
+    src.write_text("hello world")
+    mock_drive_service.files().create().execute.return_value = {"id": "x", "name": "Custom Name"}
+    await google_drive(operation="import_file", file_path=str(src), name="Custom Name")
+    _, kwargs = mock_drive_service.files().create.call_args
+    assert kwargs["body"]["name"] == "Custom Name"

@@ -53,7 +53,7 @@ export default function Dashboard() {
 
       {needsOnboarding && (
         <a
-          href="#/settings"
+          href="#/onboarding"
           data-testid="onboarding-cue"
           className="flex items-center justify-center gap-2 rounded-xl border-2 border-red-600 bg-red-600/10 px-4 py-3 font-semibold text-red-400 hover:bg-red-600/20"
         >

@@ -1128,6 +1128,51 @@
     }
   },
   {
+    "name": "drive-export-pdf",
+    "description": "Export a Google Doc as a PDF",
+    "prompt": "Export my 'Final Report' doc as a PDF to my Downloads folder.",
+    "tool": "google_drive",
+    "arguments": {
+      "operation": "export",
+      "file_id": "1FinalReportId",
+      "export_format": "pdf",
+      "output_path": "C:/Users/me/Downloads/Final Report.pdf"
+    }
+  },
+  {
+    "name": "drive-export-docx",
+    "description": "Export a Google Doc as a Word document for offline editing",
+    "prompt": "I need to email this contract as a Word doc — export it.",
+    "tool": "google_drive",
+    "arguments": {
+      "operation": "export",
+      "file_id": "1ContractDocId",
+      "export_format": "docx",
+      "output_path": "C:/Users/me/Downloads/Contract.docx"
+    }
+  },
+  {
+    "name": "drive-import-docx",
+    "description": "Import a local Word document as a new Google Doc",
+    "prompt": "Import the meeting-notes.docx file from my Desktop into Google Docs.",
+    "tool": "google_drive",
+    "arguments": {
+      "operation": "import_file",
+      "file_path": "C:/Users/me/Desktop/meeting-notes.docx"
+    }
+  },
+  {
+    "name": "drive-import-txt-named",
+    "description": "Import a plain text file with a custom document title",
+    "prompt": "Turn this draft.txt file into a Google Doc called 'First Draft — Chapter 1'.",
+    "tool": "google_drive",
+    "arguments": {
+      "operation": "import_file",
+      "file_path": "C:/Users/me/Desktop/draft.txt",
+      "name": "First Draft — Chapter 1"
+    }
+  },
+  {
     "name": "workflow-onboarding-first-doc",
     "description": "First document created right after onboarding completes",
     "prompt": "Now that I'm connected, create a test doc to make sure everything works.",

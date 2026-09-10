@@ -63,6 +63,10 @@ Drive API v3 file lifecycle. Operations:
 - `list_comments(file_id, limit=25, cursor?)` — paginated
 - `add_comment(file_id, content)` / `reply_comment(file_id, comment_id, content)` /
   `resolve_comment(file_id, comment_id)`
+- `export(file_id, export_format="pdf", output_path)` — download a Doc as pdf/docx/odt/txt/html/rtf/epub
+  (10 MB Drive API export limit)
+- `import_file(file_path, name?, folder_id?)` — upload a local .docx/.odt/.txt/.md/.html/.rtf and
+  convert it into a new Google Doc
 
 Pagination: paginated operations return `{items, has_more, next_cursor}` inside `data` — pass
 `next_cursor` back as `cursor` to continue.

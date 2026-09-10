@@ -358,6 +358,21 @@ add("drive-resolve-comment-after-fix", "Resolve a comment after addressing the f
 add("drive-search-not-docs-only", "Search across all Drive file types for an attachment",
     "Search my whole Drive, not just Docs, for anything called 'logo'.", "google_drive",
     {"operation": "search", "query": "logo", "docs_only": False})
+add("drive-export-pdf", "Export a Google Doc as a PDF",
+    "Export my 'Final Report' doc as a PDF to my Downloads folder.", "google_drive",
+    {"operation": "export", "file_id": "1FinalReportId", "export_format": "pdf",
+     "output_path": "C:/Users/me/Downloads/Final Report.pdf"})
+add("drive-export-docx", "Export a Google Doc as a Word document for offline editing",
+    "I need to email this contract as a Word doc — export it.", "google_drive",
+    {"operation": "export", "file_id": "1ContractDocId", "export_format": "docx",
+     "output_path": "C:/Users/me/Downloads/Contract.docx"})
+add("drive-import-docx", "Import a local Word document as a new Google Doc",
+    "Import the meeting-notes.docx file from my Desktop into Google Docs.", "google_drive",
+    {"operation": "import_file", "file_path": "C:/Users/me/Desktop/meeting-notes.docx"})
+add("drive-import-txt-named", "Import a plain text file with a custom document title",
+    "Turn this draft.txt file into a Google Doc called 'First Draft — Chapter 1'.",
+    "google_drive", {"operation": "import_file", "file_path": "C:/Users/me/Desktop/draft.txt",
+                      "name": "First Draft — Chapter 1"})
 
 add("workflow-onboarding-first-doc", "First document created right after onboarding completes",
     "Now that I'm connected, create a test doc to make sure everything works.", "google_docs",

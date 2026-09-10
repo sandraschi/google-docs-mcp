@@ -67,6 +67,18 @@ Google Docs comments are a Drive API concept, not a Docs API one — use
 "resolve_comment", ...)`. `resolve_comment` posts a reply with
 `action: "resolve"`, matching how the Docs UI's "Resolve" button behaves.
 
+## Export and import
+
+- `google_drive(operation="export", file_id=..., export_format="pdf"|"docx"|"odt"|"txt"|"html"|
+  "rtf"|"epub", output_path=...)` downloads a Google Doc to a local file. Drive API's export
+  endpoint has a **10 MB** output limit — for a very long document, export as `txt`/`html`
+  (smaller) rather than `pdf`/`docx`, or suggest splitting the document.
+- `google_drive(operation="import_file", file_path=..., name?, folder_id?)` uploads a local
+  `.docx`/`.odt`/`.txt`/`.md`/`.html`/`.rtf` file and converts it into a new Google Doc. A `.md`
+  source is imported as literal plain text (Drive has no Markdown renderer) — if the user wants
+  real Docs formatting from Markdown, import it then apply `google_docs` style operations
+  (`update_paragraph_style` for headings, etc.) as a follow-up.
+
 ## Error handling
 
 Every tool call returns `{"success": false, "error": ..., "error_type": ...,
