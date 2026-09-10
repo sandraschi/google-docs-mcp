@@ -60,3 +60,21 @@ a REST-layer decision).
 
 This repo requires onboarding (a third-party account — see `docs/ONBOARDING.md`), so the
 `ONBOARDING_STANDARD.md` § Exempt (rare) N/A path does not apply.
+
+## Deliberate deviations from WEBAPP_SOTA_STANDARDS.md (declared, not silent)
+
+- **No Inbox page.** The catch-them-all gate lists Inbox as "mandatory when the product has
+  inbound events." This server has none — no webhooks, no push notifications, no background
+  jobs. Google Drive API does support push notifications (`changes.watch`) but implementing
+  that is a real feature this repo doesn't have yet, not a page this webapp is missing; adding
+  it would require both the Drive webhook subscription flow and a page to show its output.
+  Tracked as a real follow-up if this server grows a notifications feature, not a gap to fill
+  with an empty page.
+- **No MOCK-badged sample data on Dashboard/Documents.** `ONBOARDING_STANDARD.md` asks for
+  "Joe Mocky"-style sample content so an unconfigured webapp isn't a blank desert. This repo
+  instead shows the explicit, honest empty/error state (`error_type: "not_configured"` /
+  `"not_authenticated"`, surfaced as amber warning banners) per `TESTING_GUIDE.md` § Declared
+  doubles ("Empty list when unconfigured... not fabricated rows"). For a personal-productivity
+  tool like this one, a real error message pointing at Settings felt more useful and less
+  confusing than fake documents named after fictional people — but this is a judgment call,
+  not a standards reading; revisit if user feedback says otherwise.

@@ -15,6 +15,8 @@ node_modules/
 .next/
 *.tsbuildinfo
 webapp/dist/
+webapp/test-results/
+webapp/playwright-report/
 webapp/.vite/
 
 # Rust / Tauri (fleet: commonly forgotten!)

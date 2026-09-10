@@ -28,3 +28,7 @@ mcpb-pack:
 # Build the Tauri/NSIS desktop installer
 build-native:
     powershell.exe -NoProfile -ExecutionPolicy Bypass -File native/build.ps1
+
+# Playwright e2e smoke suite (start backend+frontend with `start.ps1` first)
+e2e:
+    cd webapp; bunx playwright test
