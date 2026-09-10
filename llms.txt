@@ -1,0 +1,24 @@
+# google-docs-mcp
+
+> FastMCP server for Google Docs (content editing, Docs API v1) and Google Drive (file
+> lifecycle — search, share, comments, trash — Drive API v3). Runs locally via OAuth
+> installed-app flow; no data passes through a third-party server.
+
+See [llms-full.txt](llms-full.txt) for the complete tool reference, architecture, and
+troubleshooting corpus in one file.
+
+## Docs
+
+- [README](README.md): what it does, quick install, example prompts
+- [INSTALL](INSTALL.md): all install paths (drag-and-drop .mcpb, mcpb CLI, manual config, dev mode)
+- [Onboarding](docs/ONBOARDING.md): Google Cloud OAuth client setup, cost, pitfalls
+- [Configuration](docs/CONFIGURATION.md): environment variables
+- [Tools](docs/TOOLS.md): full `google_docs` / `google_drive` / `google_docs_auth` operation reference
+- [Architecture](docs/ARCHITECTURE.md): data flow, ports, OAuth flow
+- [Troubleshooting](docs/TROUBLESHOOTING.md): symptom → fix
+- [Development](docs/DEVELOPMENT.md): local setup, declared test doubles
+
+## Optional
+
+- [Wrapped APIs](docs/WRAPPEE.md): links to the official Google Docs API and Drive API docs
+- [Changelog](CHANGELOG.md)

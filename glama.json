@@ -1,0 +1,21 @@
+{
+  "mcpServers": {
+    "google-docs-mcp": {
+      "command": "uv",
+      "args": ["run", "google-docs-mcp"],
+      "env": {
+        "PYTHONPATH": "${workspaceFolder}"
+      },
+      "capabilities": {
+        "tools": { "enabled": true },
+        "prompts": { "enabled": false },
+        "resources": { "enabled": true }
+      },
+      "metadata": {
+        "version": "0.1.0",
+        "tags": ["google", "docs", "drive", "productivity", "oauth"],
+        "homepage": "https://github.com/sandraschi/google-docs-mcp"
+      }
+    }
+  }
+}

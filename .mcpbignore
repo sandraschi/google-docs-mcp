@@ -1,0 +1,31 @@
+# Logic/Dev Bloat
+.venv/
+node_modules/
+__pycache__/
+.ruff_cache/
+.pytest_cache/
+tests/
+
+# Discovery & Fleet Metadata
+glama.json
+llms.txt
+llms-full.txt
+.git/
+.github/
+.vscode/
+
+# Build Artifacts
+dist/
+build/
+*.mcpb
+
+# Webapp / native (not part of the Claude Desktop bundle)
+webapp/
+native/
+docs/
+
+# Editor / tooling backups
+*.bak
+*.bak.*
+*.orig
+*.rej

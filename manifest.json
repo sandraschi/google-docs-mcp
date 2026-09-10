@@ -1,0 +1,43 @@
+{
+  "manifest_version": "0.2",
+  "name": "google-docs-mcp",
+  "version": "0.1.0",
+  "description": "Real Google Docs content editing and Google Drive file management via the official Docs API v1 and Drive API v3 — OAuth-authenticated, no third-party proxy.",
+  "author": { "name": "Sandra Schipal" },
+  "server": {
+    "type": "python",
+    "entry_point": "src/google_docs_mcp/server.py",
+    "mcp_config": {
+      "command": "python",
+      "args": ["-m", "google_docs_mcp.server"],
+      "env": {
+        "PYTHONPATH": "${PWD}",
+        "PYTHONUNBUFFERED": "1",
+        "GOOGLE_DOCS_MCP_CLIENT_ID": "${user_config.google_client_id}",
+        "GOOGLE_DOCS_MCP_CLIENT_SECRET": "${user_config.google_client_secret}"
+      }
+    }
+  },
+  "user_config": {
+    "google_client_id": {
+      "type": "string",
+      "title": "Google OAuth Client ID",
+      "description": "From Google Cloud Console → APIs & Services → Credentials (Desktop app type). See docs/ONBOARDING.md.",
+      "required": true
+    },
+    "google_client_secret": {
+      "type": "string",
+      "title": "Google OAuth Client Secret",
+      "description": "Paired with the client ID above.",
+      "required": true,
+      "sensitive": true
+    }
+  },
+  "tools": [
+    { "name": "google_docs_auth", "description": "OAuth lifecycle: status, start_oauth, revoke." },
+    { "name": "google_docs", "description": "Google Docs API v1 content editing (create, read, edit text/styles/tables)." },
+    { "name": "google_drive", "description": "Google Drive API v3 file lifecycle (list, search, share, trash, comments)." },
+    { "name": "google_docs_mcp_help", "description": "Static tool reference." },
+    { "name": "show_google_docs_status_app", "description": "Prefab UI status card for auth/config state." }
+  ]
+}

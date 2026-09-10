@@ -1,0 +1,147 @@
+# google-docs-mcp — full reference
+
+FastMCP 3.4.4+ server exposing Google Docs (content editing, Docs API v1) and Google Drive
+(file lifecycle, Drive API v3) as MCP tools. Runs locally as a stdio process launched by
+Claude Desktop; OAuth uses the installed-app (desktop) flow with a loopback redirect — no
+data passes through any third-party server, only directly between the user's machine and
+Google's own APIs.
+
+## Why two APIs, one server
+
+Google Docs API v1 only edits document *content* (paragraphs, text runs, tables, styles) via
+one `documents.batchUpdate` endpoint taking typed request objects. Everything about a document
+as a *file* — listing, searching, sharing, permissions, trash, revisions, comments — lives in
+Drive API v3, because a Google Doc is a Drive file with a special mimeType
+(`application/vnd.google-apps.document`). This server mirrors that split as two portmanteau
+tools rather than merging them, so the tool surface matches Google's own API boundary.
+
+## Tool surface
+
+### google_docs_auth(operation)
+
+OAuth lifecycle. Operations: `status` (read-only — configured/authenticated/scopes/token_path/
+expiry), `start_oauth` (opens the user's browser, blocks until consent completes — MUST be
+announced to the user before calling), `revoke` (deletes the cached token file).
+
+### google_docs(operation, ...)
+
+Docs API v1 content editing. Operations:
+
+- `create(title)` → `{document_id, url}`
+- `get(document_id)` → raw Docs API document JSON
+- `read_text(document_id)` → plain-text body
+- `get_structure(document_id)` → outline of headings/paragraphs with `{start_index, end_index,
+  style, text}`
+- `insert_text(document_id, text, index)` / `append_text(document_id, text)`
+- `delete_range(document_id, start_index, end_index)`
+- `replace_all_text(document_id, find_text, replace_text, match_case)`
+- `insert_page_break(document_id, index)`
+- `insert_table(document_id, rows, columns, index)`
+- `update_paragraph_style(document_id, start_index, end_index, alignment, named_style_type)`
+- `update_text_style(document_id, start_index, end_index, bold, italic, underline, font_size,
+  foreground_color)`
+- `batch_update(document_id, requests)` — raw Docs API request passthrough for anything not
+  covered above (nested lists, footnotes, headers/footers, embedded images, suggested edits)
+
+**Indices are UTF-16 code unit offsets and shift after every edit.** Always re-fetch
+`get_structure` between edits in the same document rather than reusing a stale index.
+
+### google_drive(operation, ...)
+
+Drive API v3 file lifecycle. Operations:
+
+- `list_files(folder_id?, docs_only=True, limit=25, cursor?)` — paginated
+- `search(query, docs_only=True, limit=25, cursor?)` — full-text + metadata search, paginated
+- `get_metadata(file_id)`
+- `create_folder(name, folder_id?)`
+- `copy(file_id, name?, folder_id?)` / `move(file_id, new_parent_id)` / `rename(file_id, name)`
+- `trash(file_id)` (reversible) / `untrash(file_id)` / `delete_permanently(file_id,
+  confirm=True)` (**irreversible, bypasses trash — requires explicit confirm=True**)
+- `share(file_id, email, role="reader", send_notification=True)`
+- `list_permissions(file_id)` / `revoke_permission(file_id, permission_id)`
+- `list_revisions(file_id, limit=25, cursor?)` — paginated
+- `list_comments(file_id, limit=25, cursor?)` — paginated
+- `add_comment(file_id, content)` / `reply_comment(file_id, comment_id, content)` /
+  `resolve_comment(file_id, comment_id)`
+
+Pagination: paginated operations return `{items, has_more, next_cursor}` inside `data` — pass
+`next_cursor` back as `cursor` to continue.
+
+### google_docs_mcp_help()
+
+Static markdown tool reference, no network calls, no parameters.
+
+### show_google_docs_status_app()
+
+Prefab UI (`@mcp.tool(app=True)`) status card — same data as `google_docs_auth(status)`,
+rendered as a rich in-chat card with a plain-text fallback for hosts without MCP Apps support.
+
+## Return shape (every tool)
+
+Success: `{"success": true, "message": str, "data": {...}}`
+Failure: `{"success": false, "error": str, "error_type": str, "suggestions": [str]}`
+
+`error_type` values and what they mean:
+
+- `not_configured` — `GOOGLE_DOCS_MCP_CLIENT_ID`/`_SECRET` env vars unset. Fix: docs/ONBOARDING.md.
+- `not_authenticated` — OAuth client configured but no valid cached token. Fix: call
+  `google_docs_auth(operation="start_oauth")`.
+- `validation` — missing/bad parameter for the chosen operation. Fix the call; do not retry blindly.
+- `permission` — signed-in Google account lacks access to the file. Ask the owner to share it.
+- `not_found` — bad `document_id`/`file_id`. Re-search via `google_drive(operation="search")`.
+- `conflict` — Google API returned HTTP 409.
+- `rate_limited` — Docs/Drive API quota hit. Wait a few seconds, retry once.
+- `api_error` — any other Google API error, message carries detail.
+
+## Architecture
+
+No local database — Google Docs/Drive are the sole source of truth; the only local state is
+the cached OAuth token at `data/token.json` (gitignored, plaintext, same trust model as
+`claude_desktop_config.json`). This server therefore skips the fleet's HTTP-daemon +
+stdio-proxy pattern (SOTA_REQUIREMENTS.md §2.3) — that pattern exists to prevent concurrent
+stdio clients from corrupting a local SQLite/LanceDB file, and there is no such file here.
+
+Dual transport: `google_docs_mcp.server:mcp` runs over stdio (the `google-docs-mcp` console
+script, what Claude Desktop launches) and is also exposed as an ASGI sub-app (`mcp_http_app`)
+mounted at `/mcp` on the Starlette webapp backend (port 11972; frontend 11973), so the
+webapp's own Chat page can reach the same tool surface over HTTP.
+
+OAuth: installed-app (desktop) flow via `google-auth-oauthlib`'s `InstalledAppFlow.
+run_local_server()` — a loopback HTTP listener receives the redirect after browser consent.
+This is the only correct flow for a process that is not itself a public web server.
+
+## Configuration
+
+| Variable | Default | Description |
+|---|---|---|
+| `GOOGLE_DOCS_MCP_CLIENT_ID` | none | OAuth Desktop-app client ID |
+| `GOOGLE_DOCS_MCP_CLIENT_SECRET` | none | OAuth client secret |
+| `GOOGLE_DOCS_MCP_TOKEN_PATH` | `<repo>/data/token.json` | cached token location |
+| `GOOGLE_DOCS_MCP_OAUTH_PORT` | `0` (OS picks) | fixed loopback redirect port |
+| `GOOGLE_DOCS_MCP_HOST` | `127.0.0.1` | webapp backend bind host |
+| `GOOGLE_DOCS_MCP_PORT` | `11972` | webapp backend bind port |
+| `GOOGLE_DOCS_MCP_PREFAB_APPS` | `1` | set `0` to skip registering Prefab App tools |
+
+## Onboarding summary
+
+Requires a Google Cloud project with the Docs API and Drive API enabled, and an OAuth 2.0
+Desktop-app client (not Web application). Free for personal use, no billing account required.
+Full walkthrough: docs/ONBOARDING.md. Common pitfalls: "unverified app" warning is expected
+and safe to bypass for your own client; wrong client type ("Web application" instead of
+"Desktop app") causes a redirect_uri_mismatch on `start_oauth`.
+
+## Troubleshooting quick index
+
+- All calls `not_configured` → OAuth client env vars unset → docs/ONBOARDING.md
+- All calls `not_authenticated` → run `start_oauth`
+- `start_oauth` hangs after browser consent → firewall blocking loopback redirect, or stale tab
+- `permission` on a doc you own → wrong signed-in Google account
+- `not_found` with a URL-copied id → strip the URL down to just the id segment
+- `redirect_uri_mismatch` → OAuth client created as Web application, needs to be Desktop app
+
+## Development
+
+`uv sync --extra dev`, `just test` (pytest, all Google API calls mocked via
+`unittest.mock.MagicMock` standing in for `googleapiclient.discovery.Resource` — no real
+credentials needed to run the test suite), `just lint` (ruff check + format --check), `just ci`
+(both). Declared test doubles documented in docs/DEVELOPMENT.md.
