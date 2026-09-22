@@ -9,6 +9,17 @@ New-Item -ItemType Directory -Force -Path $ResourceDir, $DevDir | Out-Null
 
 Write-Host "=== ${RepoName} Tauri Release Build ===" -ForegroundColor Cyan
 
+# Naked `bun`/`bunx` inherit whatever PATH the invoking shell happened to have,
+# which can predate bun's installer PATH registration in an already-open
+# PowerShell window (BUG-045 — exactly this bit a real launch on 2026-09-23).
+# Resolve qualified paths once instead.
+$bunExe = Join-Path $env:USERPROFILE ".bun\bin\bun.exe"
+if (-not (Test-Path $bunExe)) { $bunExe = (Get-Command bun -ErrorAction SilentlyContinue).Source }
+if (-not $bunExe) { throw "bun not found — install from https://bun.sh" }
+$bunxExe = Join-Path $env:USERPROFILE ".bun\bin\bunx.exe"
+if (-not (Test-Path $bunxExe)) { $bunxExe = (Get-Command bunx -ErrorAction SilentlyContinue).Source }
+if (-not $bunxExe) { throw "bunx not found — install from https://bun.sh" }
+
 # Step 0: Verify API_BASE matches backend port (catches "Failed to fetch" before Tauri build)
 $apiFile = Join-Path $Root "webapp\src\lib\api.ts"
 if (Test-Path $apiFile) {
@@ -30,17 +41,17 @@ if (Test-Path $apiFile) {
 Write-Host "-> [1/4] Building frontend (webapp)..." -ForegroundColor Yellow
 $webapp = Join-Path $Root "webapp"
 Push-Location $webapp
-bun install --frozen-lockfile
+& $bunExe install --frozen-lockfile
 
 Write-Host "  tsc -b ..." -ForegroundColor Gray
-bunx tsc -b
+& $bunxExe tsc -b
 if ($LASTEXITCODE -ne 0) { Pop-Location; throw "TypeScript compilation failed — fix all errors before building NSIS installer" }
 
 Write-Host "  biome check ..." -ForegroundColor Gray
-bunx biome check .
+& $bunxExe biome check .
 if ($LASTEXITCODE -ne 0) { Pop-Location; throw "Biome check failed — fix all errors before building NSIS installer" }
 
-bun run build
+& $bunExe run build
 if ($LASTEXITCODE -ne 0) { Pop-Location; throw "Frontend build failed" }
 Pop-Location
 
@@ -123,7 +134,7 @@ if (Test-Path $envExample) {
 Write-Host "-> [4/4] Tauri NSIS bundle..." -ForegroundColor Yellow
 Push-Location $PSScriptRoot
 $env:Path = "$env:USERPROFILE\.cargo\bin;$env:Path"
-bunx @tauri-apps/cli build --bundles nsis
+& $bunxExe @tauri-apps/cli build --bundles nsis
 if ($LASTEXITCODE -ne 0) { Pop-Location; throw "Tauri build failed with exit code $LASTEXITCODE" }
 Pop-Location
 
