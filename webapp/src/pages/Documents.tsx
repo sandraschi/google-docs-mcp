@@ -445,7 +445,7 @@ export default function Documents() {
                 <FileText size={18} className="text-amber-400" />
                 <div>
                   <div className="text-zinc-100">{f.name}</div>
-                  <div className="text-xs text-zinc-500">{f.modifiedTime}</div>
+                  <div className="text-xs text-zinc-400">{f.modifiedTime}</div>
                 </div>
               </a>
               <div className="flex items-center gap-2">
@@ -511,7 +511,7 @@ export default function Documents() {
 
             {rowAction?.fileId === f.id && rowAction.kind === "restore" && (
               <div className="mt-3 flex flex-wrap items-center gap-2 border-t border-zinc-800 pt-3">
-                <span className="text-xs text-zinc-500">
+                <span className="text-xs text-zinc-400">
                   Overwrite this Google Doc's content from a local file:
                 </span>
                 <input
@@ -535,7 +535,7 @@ export default function Documents() {
 
             {rowAction?.fileId === f.id && rowAction.kind === "convert" && (
               <div className="mt-3 flex flex-wrap items-center gap-2 border-t border-zinc-800 pt-3">
-                <span className="text-xs text-zinc-500">
+                <span className="text-xs text-zinc-400">
                   Convert via libreoffice-mcp to:
                 </span>
                 <select

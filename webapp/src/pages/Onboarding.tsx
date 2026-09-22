@@ -35,11 +35,11 @@ function StepDots({ current }: { current: number }) {
           ) : i === current ? (
             <div className="h-[18px] w-[18px] rounded-full border-2 border-amber-500" />
           ) : (
-            <Circle size={18} className="text-zinc-700" />
+            <Circle size={18} className="text-zinc-500" />
           )}
           <span
             className={
-              i === current ? "text-sm text-zinc-100" : "text-sm text-zinc-600"
+              i === current ? "text-sm text-zinc-100" : "text-sm text-zinc-400"
             }
           >
             {s}

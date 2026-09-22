@@ -73,7 +73,7 @@ export default function Apps() {
               <span className="font-medium text-zinc-100">{a.name}</span>
               <ExternalLink size={14} className="text-zinc-500" />
             </div>
-            <span className="text-xs text-zinc-500">:{a.port}</span>
+            <span className="text-xs text-zinc-400">:{a.port}</span>
           </a>
         ))}
       </div>
