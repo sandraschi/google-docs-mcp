@@ -1,4 +1,11 @@
-import { CheckCircle2, KeyRound, LogOut, XCircle } from "lucide-react";
+import {
+  CheckCircle2,
+  ExternalLink,
+  KeyRound,
+  Loader2,
+  LogOut,
+  XCircle,
+} from "lucide-react";
 import { useEffect, useState } from "react";
 import { API_BASE } from "../lib/api";
 import { useLlmStore } from "../store/llm";
@@ -9,11 +16,16 @@ type AuthStatus = {
   scopes: string[];
   token_path: string;
   expiry: string | null;
+  client_source?: string;
 };
 
 export default function Settings() {
   const [status, setStatus] = useState<AuthStatus | null>(null);
   const [starting, setStarting] = useState(false);
+  const [clientId, setClientId] = useState("");
+  const [clientSecret, setClientSecret] = useState("");
+  const [saving, setSaving] = useState(false);
+  const [saveMessage, setSaveMessage] = useState<string | null>(null);
   const llm = useLlmStore();
 
   const loadStatus = () =>
@@ -40,6 +52,34 @@ export default function Settings() {
   const revoke = async () => {
     await fetch(`${API_BASE}/api/auth/revoke`, { method: "POST" });
     loadStatus();
+  };
+
+  const saveClient = async () => {
+    setSaving(true);
+    setSaveMessage(null);
+    try {
+      const res = await fetch(`${API_BASE}/api/onboarding/client`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          client_id: clientId.trim(),
+          client_secret: clientSecret.trim(),
+        }),
+      });
+      const body = await res.json();
+      if (body.success) {
+        setSaveMessage("Saved — you can connect your Google account now.");
+        setClientId("");
+        setClientSecret("");
+        loadStatus();
+      } else {
+        setSaveMessage(`Error: ${body.error}`);
+      }
+    } catch (err) {
+      setSaveMessage(`Error: ${String(err)}`);
+    } finally {
+      setSaving(false);
+    }
   };
 
   return (
@@ -74,33 +114,84 @@ export default function Settings() {
             )}
             <div className="text-zinc-500">Token file: {status.token_path}</div>
 
-            {!status.configured && (
-              <p className="text-amber-400">
-                Set GOOGLE_DOCS_MCP_CLIENT_ID / GOOGLE_DOCS_MCP_CLIENT_SECRET —
-                see docs/ONBOARDING.md.
-              </p>
+            {status.configured ? (
+              <div className="flex gap-3 pt-2">
+                <button
+                  type="button"
+                  data-testid="settings-start-oauth"
+                  disabled={starting}
+                  onClick={startOAuth}
+                  className="rounded-lg bg-amber-500 px-4 py-2 text-sm font-medium text-zinc-950 hover:bg-amber-400 disabled:opacity-40"
+                >
+                  {starting ? "Opening browser…" : "Connect Google Account"}
+                </button>
+                <button
+                  type="button"
+                  data-testid="settings-revoke"
+                  onClick={revoke}
+                  className="flex items-center gap-2 rounded-lg border border-zinc-700 px-4 py-2 text-sm text-zinc-300 hover:bg-zinc-800"
+                >
+                  <LogOut size={14} />
+                  Revoke
+                </button>
+              </div>
+            ) : (
+              <div className="space-y-3 border-t border-zinc-800 pt-4">
+                <p className="text-zinc-400">
+                  No Google Cloud OAuth client yet. Paste the Client ID and
+                  Secret from your{" "}
+                  <a
+                    href="https://console.cloud.google.com/apis/credentials"
+                    target="_blank"
+                    rel="noreferrer"
+                    className="inline-flex items-center gap-1 text-amber-400 hover:underline"
+                  >
+                    Google Cloud Console <ExternalLink size={12} />
+                  </a>{" "}
+                  — saved locally to <code>data/oauth_client.json</code>, never
+                  sent anywhere but Google. First time doing this?{" "}
+                  <a
+                    href="#/onboarding"
+                    className="text-amber-400 hover:underline"
+                  >
+                    Full walkthrough →
+                  </a>
+                </p>
+                <input
+                  data-testid="settings-client-id"
+                  value={clientId}
+                  onChange={(e) => setClientId(e.target.value)}
+                  placeholder="xxxxxxxx.apps.googleusercontent.com"
+                  className="w-full rounded-lg border border-zinc-700 bg-zinc-800 p-2 text-sm text-zinc-100 placeholder-zinc-500 focus:border-amber-500 focus:outline-none"
+                />
+                <input
+                  data-testid="settings-client-secret"
+                  type="password"
+                  value={clientSecret}
+                  onChange={(e) => setClientSecret(e.target.value)}
+                  placeholder="Client secret"
+                  className="w-full rounded-lg border border-zinc-700 bg-zinc-800 p-2 text-sm text-zinc-100 placeholder-zinc-500 focus:border-amber-500 focus:outline-none"
+                />
+                <button
+                  type="button"
+                  data-testid="settings-save-client"
+                  disabled={saving || !clientId.trim() || !clientSecret.trim()}
+                  onClick={saveClient}
+                  className="flex items-center gap-2 rounded-lg bg-amber-500 px-4 py-2 text-sm font-medium text-zinc-950 hover:bg-amber-400 disabled:opacity-50"
+                >
+                  {saving && <Loader2 size={16} className="animate-spin" />}
+                  Save
+                </button>
+                {saveMessage && (
+                  <p
+                    data-testid="settings-save-message"
+                    className="text-sm text-zinc-400"
+                  >
+                    {saveMessage}
+                  </p>
+                )}
+              </div>
             )}
-
-            <div className="flex gap-3 pt-2">
-              <button
-                type="button"
-                data-testid="settings-start-oauth"
-                disabled={!status.configured || starting}
-                onClick={startOAuth}
-                className="rounded-lg bg-amber-500 px-4 py-2 text-sm font-medium text-zinc-950 hover:bg-amber-400 disabled:opacity-40"
-              >
-                {starting ? "Opening browser…" : "Connect Google Account"}
-              </button>
-              <button
-                type="button"
-                data-testid="settings-revoke"
-                onClick={revoke}
-                className="flex items-center gap-2 rounded-lg border border-zinc-700 px-4 py-2 text-sm text-zinc-300 hover:bg-zinc-800"
-              >
-                <LogOut size={14} />
-                Revoke
-              </button>
-            </div>
           </div>
         )}
       </section>

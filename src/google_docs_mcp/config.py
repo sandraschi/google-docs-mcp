@@ -20,14 +20,42 @@ import contextlib
 import json
 import os
 import stat
+import sys
 from pathlib import Path
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
+
+# App identifier — must match native/tauri.conf.json's "identifier". Used only
+# to locate the frozen-app data directory (see data_dir below).
+_TAURI_IDENTIFIER = "com.sandraschi.google-docs-mcp"
 
 DEFAULT_SCOPES = [
     "https://www.googleapis.com/auth/documents",
     "https://www.googleapis.com/auth/drive",
 ]
+
+
+def data_dir() -> Path:
+    """Where `data/oauth_client.json` and `data/token.json` live.
+
+    In normal dev use (`uv run google-docs-mcp`), REPO_ROOT/data — unchanged
+    behavior. In the frozen Tauri app (PyInstaller sets sys.frozen=True),
+    REPO_ROOT resolves into the PyInstaller onefile's _MEIPASS extraction
+    temp directory — a fresh, random path created on every launch and wiped
+    on exit. Writing there means the app "forgets" a saved OAuth client and
+    auth token every single time it's closed and reopened (see
+    TAURI_PRODUCTION_PITFALLS.md §13 item 15). Frozen builds use
+    %LOCALAPPDATA%\\{identifier}\\data instead, matching where the Rust side
+    already writes backend-spawn.log (app.path().app_log_dir()).
+    """
+    override = os.getenv("GOOGLE_DOCS_MCP_DATA_DIR")
+    if override:
+        return Path(override)
+    if getattr(sys, "frozen", False):
+        local_app_data = os.getenv("LOCALAPPDATA")
+        if local_app_data:
+            return Path(local_app_data) / _TAURI_IDENTIFIER / "data"
+    return REPO_ROOT / "data"
 
 
 def _env_bool(name: str, default: bool) -> bool:
@@ -42,9 +70,7 @@ class Settings:
 
     @property
     def local_config_path(self) -> Path:
-        return Path(
-            os.getenv("GOOGLE_DOCS_MCP_LOCAL_CONFIG_PATH", str(REPO_ROOT / "data" / "oauth_client.json"))
-        )
+        return Path(os.getenv("GOOGLE_DOCS_MCP_LOCAL_CONFIG_PATH", str(data_dir() / "oauth_client.json")))
 
     def _local_client(self) -> dict[str, str]:
         if not self.local_config_path.is_file():
@@ -90,7 +116,7 @@ class Settings:
 
     @property
     def token_path(self) -> Path:
-        return Path(os.getenv("GOOGLE_DOCS_MCP_TOKEN_PATH", str(REPO_ROOT / "data" / "token.json")))
+        return Path(os.getenv("GOOGLE_DOCS_MCP_TOKEN_PATH", str(data_dir() / "token.json")))
 
     @property
     def scopes(self) -> list[str]:

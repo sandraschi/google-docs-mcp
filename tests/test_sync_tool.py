@@ -9,13 +9,24 @@ from __future__ import annotations
 
 import pytest
 
-from google_docs_mcp.tools.sync_tool import google_docs_sync
+from google_docs_mcp.tools.sync_tool import google_docs_sync, sync_config_path, sync_manifest_path
 
 
 @pytest.fixture(autouse=True)
 def isolated_sync_paths(monkeypatch, tmp_path):
     monkeypatch.setenv("GOOGLE_DOCS_MCP_SYNC_CONFIG_PATH", str(tmp_path / "sync_config.json"))
     monkeypatch.setenv("GOOGLE_DOCS_MCP_SYNC_MANIFEST_PATH", str(tmp_path / "sync_manifest.json"))
+
+
+def test_sync_paths_fall_back_to_data_dir_override(monkeypatch, tmp_path):
+    # Without the sync-specific env vars, sync state should still land under
+    # GOOGLE_DOCS_MCP_DATA_DIR (config.data_dir()) rather than REPO_ROOT/data —
+    # same frozen-Tauri-app concern as token.json/oauth_client.json.
+    monkeypatch.delenv("GOOGLE_DOCS_MCP_SYNC_CONFIG_PATH", raising=False)
+    monkeypatch.delenv("GOOGLE_DOCS_MCP_SYNC_MANIFEST_PATH", raising=False)
+    monkeypatch.setenv("GOOGLE_DOCS_MCP_DATA_DIR", str(tmp_path))
+    assert sync_config_path() == tmp_path / "sync_config.json"
+    assert sync_manifest_path() == tmp_path / "sync_manifest.json"
 
 
 async def test_configure_requires_local_dir():

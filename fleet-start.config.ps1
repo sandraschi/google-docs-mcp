@@ -3,7 +3,7 @@
     BackendPort  = 11972
     FrontendPort = 11973
     HealthPath   = '/api/health'
-    WebRoot      = 'D:\Dev\repos\google-docs-mcp\webapp'
+    WebRoot      = 'webapp'
 
     Backend = @{
         Kind          = 'uvicorn'

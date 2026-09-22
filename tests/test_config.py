@@ -2,7 +2,9 @@
 
 from __future__ import annotations
 
-from google_docs_mcp.config import settings
+import sys
+
+from google_docs_mcp.config import REPO_ROOT, data_dir, settings
 
 
 def test_not_configured_by_default(monkeypatch):
@@ -56,3 +58,33 @@ def test_env_vars_win_over_local_client_file(monkeypatch, tmp_path):
     assert settings.client_id == "env-id"
     assert settings.client_secret == "env-secret"
     assert settings.client_source == "env"
+
+
+def test_data_dir_defaults_to_repo_root_in_dev(monkeypatch):
+    monkeypatch.delenv("GOOGLE_DOCS_MCP_DATA_DIR", raising=False)
+    monkeypatch.setattr(sys, "frozen", False, raising=False)
+    assert data_dir() == REPO_ROOT / "data"
+
+
+def test_data_dir_uses_localappdata_when_frozen(monkeypatch, tmp_path):
+    # A naive REPO_ROOT/data default would resolve inside PyInstaller's
+    # per-launch _MEIPASS temp extraction dir in the real frozen app — wiped
+    # on exit, silently losing the saved OAuth client and token every close.
+    monkeypatch.delenv("GOOGLE_DOCS_MCP_DATA_DIR", raising=False)
+    monkeypatch.setattr(sys, "frozen", True, raising=False)
+    monkeypatch.setenv("LOCALAPPDATA", str(tmp_path))
+    assert data_dir() == tmp_path / "com.sandraschi.google-docs-mcp" / "data"
+
+
+def test_data_dir_env_override_wins_even_when_frozen(monkeypatch, tmp_path):
+    monkeypatch.setattr(sys, "frozen", True, raising=False)
+    monkeypatch.setenv("GOOGLE_DOCS_MCP_DATA_DIR", str(tmp_path / "custom"))
+    assert data_dir() == tmp_path / "custom"
+
+
+def test_token_path_and_local_config_path_follow_data_dir(monkeypatch, tmp_path):
+    monkeypatch.delenv("GOOGLE_DOCS_MCP_TOKEN_PATH", raising=False)
+    monkeypatch.delenv("GOOGLE_DOCS_MCP_LOCAL_CONFIG_PATH", raising=False)
+    monkeypatch.setenv("GOOGLE_DOCS_MCP_DATA_DIR", str(tmp_path))
+    assert settings.token_path == tmp_path / "token.json"
+    assert settings.local_config_path == tmp_path / "oauth_client.json"

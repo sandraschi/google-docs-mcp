@@ -22,7 +22,7 @@ from typing import Annotated, Any, Literal
 from googleapiclient.errors import HttpError
 from pydantic import Field
 
-from google_docs_mcp.config import REPO_ROOT
+from google_docs_mcp.config import data_dir
 from google_docs_mcp.google_client import get_drive_service, http_error_to_dict
 from google_docs_mcp.oauth import NotAuthenticatedError, NotConfiguredError
 from google_docs_mcp.sync_engine import SyncConfig, load_config, load_manifest, run_sync_pass, save_config
@@ -33,14 +33,14 @@ SyncOperation = Literal["configure", "status", "run_once", "enable", "disable"]
 def sync_config_path() -> Path:
     """Live (env-overridable) path — read fresh each call, same pattern as
     `config.Settings` properties, so tests can isolate state via monkeypatch
-    without writing into this repo's real `data/` directory."""
-    return Path(os.getenv("GOOGLE_DOCS_MCP_SYNC_CONFIG_PATH", str(REPO_ROOT / "data" / "sync_config.json")))
+    without writing into this repo's real `data/` directory. `data_dir()`
+    resolves to %LOCALAPPDATA%\\{identifier}\\data in the frozen Tauri app
+    (not the wiped-on-exit _MEIPASS temp dir) — see config.py."""
+    return Path(os.getenv("GOOGLE_DOCS_MCP_SYNC_CONFIG_PATH", str(data_dir() / "sync_config.json")))
 
 
 def sync_manifest_path() -> Path:
-    return Path(
-        os.getenv("GOOGLE_DOCS_MCP_SYNC_MANIFEST_PATH", str(REPO_ROOT / "data" / "sync_manifest.json"))
-    )
+    return Path(os.getenv("GOOGLE_DOCS_MCP_SYNC_MANIFEST_PATH", str(data_dir() / "sync_manifest.json")))
 
 
 def _not_ready(exc: NotConfiguredError | NotAuthenticatedError) -> dict[str, Any]:
