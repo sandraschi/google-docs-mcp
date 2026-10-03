@@ -407,8 +407,8 @@ async def google_docs(
                     "error": "start_index and end_index are required",
                     "error_type": "validation",
                 }
-            style, fields = _text_style_fields(bold, italic, underline, font_size, foreground_color)
-            if not fields:
+            style, text_fields = _text_style_fields(bold, italic, underline, font_size, foreground_color)
+            if not text_fields:
                 return {
                     "success": False,
                     "error": "provide at least one style attribute (bold/italic/underline/font_size/"
@@ -420,7 +420,7 @@ async def google_docs(
                     "updateTextStyle": {
                         "range": {"startIndex": start_index, "endIndex": end_index},
                         "textStyle": style,
-                        "fields": fields,
+                        "fields": text_fields,
                     }
                 }
             ]

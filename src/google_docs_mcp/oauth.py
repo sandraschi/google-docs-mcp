@@ -14,6 +14,7 @@ from __future__ import annotations
 import json
 import logging
 from dataclasses import dataclass
+from typing import Any
 
 from google.auth.exceptions import RefreshError
 from google.auth.transport.requests import Request
@@ -88,7 +89,8 @@ def load_credentials() -> Credentials | None:
     return creds if creds and creds.valid else None
 
 
-def _save_credentials(creds: Credentials) -> None:
+def _save_credentials(creds: Any) -> None:
+    """Persist credentials (oauth2 or external-account — both expose .to_json())."""
     settings.token_path.parent.mkdir(parents=True, exist_ok=True)
     settings.token_path.write_text(creds.to_json(), encoding="utf-8")
 

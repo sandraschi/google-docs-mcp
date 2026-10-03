@@ -16,7 +16,6 @@ from datetime import UTC, datetime
 from pathlib import Path
 from typing import Annotated, Any, Literal
 
-from googleapiclient.discovery import Resource
 from googleapiclient.errors import HttpError
 from googleapiclient.http import MediaFileUpload
 from pydantic import Field
@@ -106,7 +105,7 @@ def _safe_filename(name: str) -> str:
     return _UNSAFE_FILENAME_CHARS.sub("_", name).strip().rstrip(".") or "untitled"
 
 
-def _build_breadcrumbs(service: Resource, folder_id: str) -> list[dict[str, str]]:
+def _build_breadcrumbs(service: Any, folder_id: str) -> list[dict[str, str]]:
     """Walk the parent chain from `folder_id` up to Drive root for UI breadcrumbs."""
     chain: list[dict[str, str]] = []
     current_id: str | None = folder_id
@@ -124,9 +123,7 @@ def _build_breadcrumbs(service: Resource, folder_id: str) -> list[dict[str, str]
     return chain
 
 
-def _collect_docs_in_folder(
-    service: Resource, folder_id: str | None, recursive: bool
-) -> list[dict[str, Any]]:
+def _collect_docs_in_folder(service: Any, folder_id: str | None, recursive: bool) -> list[dict[str, Any]]:
     """List Google Docs directly inside `folder_id` (Drive root if None), optionally recursing."""
     parent = folder_id or "root"
     resp = (

@@ -34,7 +34,6 @@ from datetime import UTC, datetime
 from pathlib import Path
 from typing import Any
 
-from googleapiclient.discovery import Resource
 from googleapiclient.errors import HttpError
 from googleapiclient.http import MediaFileUpload
 
@@ -122,7 +121,7 @@ def save_manifest(manifest_path: Path, entries: dict[str, SyncManifestEntry]) ->
     manifest_path.write_text(json.dumps(payload, indent=2), encoding="utf-8")
 
 
-def _list_remote_docs(service: Resource, folder_id: str | None) -> dict[str, dict[str, Any]]:
+def _list_remote_docs(service: Any, folder_id: str | None) -> dict[str, dict[str, Any]]:
     parent = folder_id or "root"
     resp = (
         service.files()
@@ -137,7 +136,7 @@ def _list_remote_docs(service: Resource, folder_id: str | None) -> dict[str, dic
 
 
 async def run_sync_pass(
-    service: Resource,
+    service: Any,
     *,
     local_dir: Path,
     folder_id: str | None,
