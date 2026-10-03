@@ -7,9 +7,13 @@ import sys
 from google_docs_mcp.config import REPO_ROOT, data_dir, settings
 
 
-def test_not_configured_by_default(monkeypatch):
+def test_not_configured_by_default(monkeypatch, tmp_path):
     monkeypatch.delenv("GOOGLE_DOCS_MCP_CLIENT_ID", raising=False)
     monkeypatch.delenv("GOOGLE_DOCS_MCP_CLIENT_SECRET", raising=False)
+    # Neutralize the local-client-file fallback: on a real workstation it may
+    # hold credentials that would otherwise keep is_configured True (and, in
+    # test_auth_tool, launch a real browser OAuth flow and hang the suite).
+    monkeypatch.setenv("GOOGLE_DOCS_MCP_LOCAL_CONFIG_PATH", str(tmp_path / "none.json"))
     assert settings.is_configured is False
 
 
@@ -19,9 +23,10 @@ def test_configured_when_both_env_vars_set(monkeypatch):
     assert settings.is_configured is True
 
 
-def test_partial_config_is_not_configured(monkeypatch):
+def test_partial_config_is_not_configured(monkeypatch, tmp_path):
     monkeypatch.setenv("GOOGLE_DOCS_MCP_CLIENT_ID", "x")
     monkeypatch.delenv("GOOGLE_DOCS_MCP_CLIENT_SECRET", raising=False)
+    monkeypatch.setenv("GOOGLE_DOCS_MCP_LOCAL_CONFIG_PATH", str(tmp_path / "none.json"))
     assert settings.is_configured is False
 
 

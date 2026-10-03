@@ -6,11 +6,22 @@ ship a Prefab surface in addition to the plain-dict tool.
 
 from __future__ import annotations
 
-from fastmcp.server.server import ToolResult
+from fastmcp.tools.base import ToolResult  # canonical home (BUG-059)
 from prefab_ui import PrefabApp
-from prefab_ui.components import Badge, Heading, Row
+from prefab_ui.components import Badge, Text
+from prefab_ui.components import Heading as _Heading
 
 from google_docs_mcp.tools.sync_tool import google_docs_sync
+
+
+def Heading(text: str, **kwargs) -> _Heading:  # noqa: N802 - compat shim (prefab-ui 0.20 made content keyword-only)
+    """Positional-text shim; drop if prefab-ui ever restores positional content."""
+    return _Heading(content=text, **kwargs)
+
+
+def Row(label: str, value: str = "", **kwargs) -> Text:  # noqa: N802 - compat shim (0.20 Row takes children only)
+    """Two-arg row shim."""
+    return Text(f"{label}: {value}".strip(": ").strip())
 
 
 async def show_google_docs_sync_status_app() -> ToolResult:

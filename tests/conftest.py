@@ -16,6 +16,18 @@ from unittest.mock import MagicMock
 import pytest
 
 
+@pytest.fixture(autouse=True)
+def _neutralize_local_oauth_client(monkeypatch, tmp_path):
+    """Point the local-client fallback at a nonexistent file for every test.
+
+    `Settings._local_client()` reads a real workstation file that can keep
+    `is_configured` True despite deleted env vars — on 2026-10-02 this let
+    `start_oauth` open a REAL browser flow and hang the suite. Tests that need
+    the fallback set GOOGLE_DOCS_MCP_LOCAL_CONFIG_PATH themselves afterwards.
+    """
+    monkeypatch.setenv("GOOGLE_DOCS_MCP_LOCAL_CONFIG_PATH", str(tmp_path / "none.json"))
+
+
 @pytest.fixture
 def configured_env(monkeypatch, tmp_path):
     """Fake OAuth client id/secret so is_configured is True in isolation.

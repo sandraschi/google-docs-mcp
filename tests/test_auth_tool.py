@@ -5,18 +5,23 @@ from __future__ import annotations
 from google_docs_mcp.tools.auth_tool import google_docs_auth
 
 
-async def test_status_unconfigured(monkeypatch):
+async def test_status_unconfigured(monkeypatch, tmp_path):
     monkeypatch.delenv("GOOGLE_DOCS_MCP_CLIENT_ID", raising=False)
     monkeypatch.delenv("GOOGLE_DOCS_MCP_CLIENT_SECRET", raising=False)
+    # Neutralize the local-client-file fallback (see test_config.py): without
+    # this, a real workstation stays configured and start_oauth below would
+    # open a REAL browser OAuth flow and hang the suite.
+    monkeypatch.setenv("GOOGLE_DOCS_MCP_LOCAL_CONFIG_PATH", str(tmp_path / "none.json"))
     result = await google_docs_auth(operation="status")
     assert result["success"] is True
     assert result["data"]["configured"] is False
     assert result["data"]["authenticated"] is False
 
 
-async def test_start_oauth_without_client_returns_not_configured(monkeypatch):
+async def test_start_oauth_without_client_returns_not_configured(monkeypatch, tmp_path):
     monkeypatch.delenv("GOOGLE_DOCS_MCP_CLIENT_ID", raising=False)
     monkeypatch.delenv("GOOGLE_DOCS_MCP_CLIENT_SECRET", raising=False)
+    monkeypatch.setenv("GOOGLE_DOCS_MCP_LOCAL_CONFIG_PATH", str(tmp_path / "none.json"))
     result = await google_docs_auth(operation="start_oauth")
     assert result["success"] is False
     assert result["error_type"] == "not_configured"
