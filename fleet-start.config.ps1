@@ -9,6 +9,7 @@
         Kind          = 'uvicorn'
         UvicornTarget = 'google_docs_mcp.backend.app:app'
         SyncExtras    = @('dev')
+        SyncOnStart  = $true
     }
 
     Frontend = @{

@@ -1,0 +1,10 @@
+# Fleet: normalize line endings so the biome pre-commit gate passes on Windows.
+# Webapp sources + JSON must stay LF (biome formatter); PowerShell stays
+# effective on either, pinned CRLF to match the existing fleet convention.
+*.ts text eol=lf
+*.tsx text eol=lf
+*.js text eol=lf
+*.jsx text eol=lf
+*.json text eol=lf
+*.css text eol=lf
+*.ps1 text eol=crlf
