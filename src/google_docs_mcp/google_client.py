@@ -8,18 +8,22 @@ from __future__ import annotations
 
 from typing import Any
 
-from googleapiclient.discovery import Resource, build
+from googleapiclient.discovery import build
 from googleapiclient.errors import HttpError
 
 from google_docs_mcp.oauth import require_credentials
 
 
-def get_docs_service() -> Resource:
+# NOTE: Discovery builds resource methods (files(), permissions(), …)
+# dynamically at runtime; the static Resource stubs don't declare them, so
+# annotating service objects as Resource produces dozens of false
+# reportAttributeAccessIssue errors. Any is the honest annotation here.
+def get_docs_service() -> Any:
     creds = require_credentials()
     return build("docs", "v1", credentials=creds, cache_discovery=False)
 
 
-def get_drive_service() -> Resource:
+def get_drive_service() -> Any:
     creds = require_credentials()
     return build("drive", "v3", credentials=creds, cache_discovery=False)
 
@@ -28,6 +32,7 @@ def http_error_to_dict(exc: HttpError) -> dict[str, Any]:
     """Map a googleapiclient HttpError into the fleet dialogic error shape."""
     status = exc.resp.status if exc.resp is not None else None
     reason = str(exc)
+    status_code: int = status if isinstance(status, int) else 0
     error_type = {
         400: "validation",
         401: "auth",
@@ -35,7 +40,7 @@ def http_error_to_dict(exc: HttpError) -> dict[str, Any]:
         404: "not_found",
         409: "conflict",
         429: "rate_limited",
-    }.get(status, "api_error")
+    }.get(status_code, "api_error")
 
     suggestions = {
         "auth": [

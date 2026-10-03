@@ -21,11 +21,12 @@ import re
 import tempfile
 from dataclasses import asdict
 from pathlib import Path
-from typing import Any
+from typing import Any, cast
 
 import httpx
 from starlette.applications import Starlette
 from starlette.concurrency import run_in_threadpool
+from starlette.datastructures import UploadFile
 from starlette.middleware import Middleware
 from starlette.middleware.cors import CORSMiddleware
 from starlette.requests import Request
@@ -39,7 +40,7 @@ from google_docs_mcp.oauth import NotAuthenticatedError, NotConfiguredError
 from google_docs_mcp.server import mcp, mcp_http_app
 from google_docs_mcp.sync_engine import load_config as load_sync_config
 from google_docs_mcp.sync_engine import run_sync_pass
-from google_docs_mcp.tools.drive_tool import _EXPORT_MIME_MAP, google_drive
+from google_docs_mcp.tools.drive_tool import _EXPORT_MIME_MAP, ExportFormat, google_drive
 from google_docs_mcp.tools.libreoffice_tool import google_docs_convert_advanced
 from google_docs_mcp.tools.sync_tool import google_docs_sync, sync_config_path, sync_manifest_path
 
@@ -113,6 +114,23 @@ async def api_tools(_request: Request) -> JSONResponse:
                 }
                 for t in tools
             ]
+        }
+    )
+
+
+async def api_capabilities(_request: Request) -> JSONResponse:
+    """Standard fleet shape for webapp discovery (thin wrapper over /api/tools)."""
+    tools = await mcp.list_tools()
+    names = sorted(t.name for t in tools)
+    return JSONResponse(
+        {
+            "service": "google-docs-mcp",
+            "version": __version__,
+            "status": "ok",
+            "tool_count": len(names),
+            "tools": names,
+            "endpoints": ["/api/health", "/api/capabilities", "/api/tools", "/api/dashboard", "/mcp"],
+            "transports": ["http", "stdio"],
         }
     )
 
@@ -344,11 +362,12 @@ async def api_document_export(request: Request) -> Response:
     export_format = request.query_params.get("format", "pdf")
     if export_format not in _EXPORT_MIME_MAP:
         return JSONResponse({"error": f"unsupported format '{export_format}'"}, status_code=400)
+    fmt = cast("ExportFormat", export_format)
 
     with tempfile.TemporaryDirectory() as tmp:
-        dest = Path(tmp) / f"export.{export_format}"
+        dest = Path(tmp) / f"export.{fmt}"
         result = await google_drive(
-            operation="export", file_id=file_id, export_format=export_format, output_path=str(dest)
+            operation="export", file_id=file_id, export_format=fmt, output_path=str(dest)
         )
         if not result.get("success"):
             status = 404 if result.get("error_type") == "not_found" else 400
@@ -357,8 +376,8 @@ async def api_document_export(request: Request) -> Response:
 
     return Response(
         content=data,
-        media_type=_EXPORT_MIME_MAP[export_format],
-        headers={"Content-Disposition": f'attachment; filename="{file_id}.{export_format}"'},
+        media_type=_EXPORT_MIME_MAP[fmt],
+        headers={"Content-Disposition": f'attachment; filename="{file_id}.{fmt}"'},
     )
 
 
@@ -366,13 +385,17 @@ async def api_document_import(request: Request) -> JSONResponse:
     """Upload a local file (multipart/form-data) and convert it into a Google Doc."""
     form = await request.form()
     upload = form.get("file")
-    if upload is None or not hasattr(upload, "filename"):
+    if not isinstance(upload, UploadFile):
         return JSONResponse(
             {"success": False, "error": "file is required", "error_type": "validation"}, status_code=400
         )
 
-    name = form.get("name") or None
-    folder_id = form.get("folder_id") or None
+    def _form_str(key: str) -> str | None:
+        value = form.get(key)
+        return value if isinstance(value, str) and value else None
+
+    name = _form_str("name")
+    folder_id = _form_str("folder_id")
     suffix = Path(upload.filename or "upload").suffix
 
     with tempfile.TemporaryDirectory() as tmp:
@@ -524,6 +547,7 @@ async def lifespan(app: Starlette):
 app = Starlette(
     routes=[
         Route("/api/health", api_health),
+        Route("/api/capabilities", api_capabilities),
         Route("/api/dashboard", api_dashboard),
         Route("/api/tools", api_tools),
         Route("/api/skills", api_skills),

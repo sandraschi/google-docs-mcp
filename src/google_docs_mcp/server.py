@@ -88,6 +88,31 @@ mcp.tool(app=True, annotations={"readOnlyHint": True, "idempotentHint": True, "o
     show_google_docs_sync_status_app
 )
 
+
+async def google_shutdown(confirmed: bool = False) -> str:
+    """Shut down the google-docs-mcp server process.
+
+    ## Return Format
+    Confirmation prompt or termination notice string
+
+    ## Examples
+    ```python
+    await google_shutdown(confirmed=True)
+    ```
+    """
+    if not confirmed:
+        return "Refusing: pass confirmed=true to terminate the google-docs-mcp server process."
+    import os as _os
+    import signal as _signal
+
+    _os.kill(_os.getpid(), _signal.SIGTERM)
+    return "google-docs-mcp server terminating."
+
+
+mcp.tool(annotations={"readOnlyHint": False, "destructiveHint": True, "openWorldHint": False})(
+    google_shutdown
+)
+
 _skills_dir = Path(__file__).resolve().parent / "skills"
 if _skills_dir.is_dir():
     mcp.add_provider(SkillsDirectoryProvider(roots=[_skills_dir]))
