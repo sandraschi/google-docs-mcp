@@ -2,6 +2,8 @@
 
 ## [Unreleased]
 
+- Assfix 2026-10-03 (first full pass): `google_shutdown` tool + `GET /api/capabilities`; hermetic OAuth tests (local-client fallback neutralization, conftest autouse fixture); `Resource`→honest-`Any` (50 false pyright errors); Prefab 0.20 compat shims; ExportFormat/upload/oauth/docs-tool typing fixes (pyright 86 → 0); unified dev deps; pre-commit + hook
+
 - Standard-conformance pass (TOOL_DESIGN_STANDARDS.md audit): `browse` now paginates its docs
   list (`limit`/`cursor`/`has_more`/`next_cursor`, matching `list_files`/`search` — folders stay
   unpaginated, bounded at 200); added two new Prefab App tools (`show_google_drive_folder_app`,

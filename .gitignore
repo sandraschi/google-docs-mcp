@@ -78,5 +78,8 @@ logs/
 *.orig
 *.rej
 
+# Assfix working snapshots (regenerable; committed copy lives in docs/assess-reports/)
+reports/
+
 # Docker
 .docker/

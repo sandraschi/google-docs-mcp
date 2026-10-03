@@ -1,4 +1,4 @@
-$ErrorActionPreference = "Stop"
+﻿$ErrorActionPreference = "Stop"
 $Root = Split-Path -Parent $PSScriptRoot
 $RepoName = "google-docs-mcp"
 $Triple = "x86_64-pc-windows-msvc"
