@@ -71,6 +71,8 @@ export type BrowseResult = {
     breadcrumbs: Breadcrumb[];
     folders: DriveFile[];
     files: DriveFile[];
+    has_more: boolean;
+    next_cursor: string | null;
   };
 };
 
@@ -161,14 +163,28 @@ export const api = {
       `/api/llm/models?provider=${provider}`,
     ),
   logs: () => getJson<{ items: string[] }>("/api/logs"),
-  documents: (query?: string) =>
+  documents: (query?: string, cursor?: string, limit = 25) =>
     getJson<DriveResult>(
-      `/api/documents${query ? `?query=${encodeURIComponent(query)}` : ""}`,
+      `/api/documents${(() => {
+        const p = new URLSearchParams();
+        if (query) p.set("query", query);
+        if (cursor) p.set("cursor", cursor);
+        p.set("limit", String(limit));
+        const s = p.toString();
+        return s ? `?${s}` : "";
+      })()}`,
     ),
   apps: () => getJson<{ available: boolean; items: FleetApp[] }>("/api/apps"),
-  browse: (folderId?: string) =>
+  browse: (folderId?: string, cursor?: string, limit = 25) =>
     getJson<BrowseResult>(
-      `/api/documents/browse${folderId ? `?folder_id=${encodeURIComponent(folderId)}` : ""}`,
+      `/api/documents/browse${(() => {
+        const p = new URLSearchParams();
+        if (folderId) p.set("folder_id", folderId);
+        if (cursor) p.set("cursor", cursor);
+        p.set("limit", String(limit));
+        const s = p.toString();
+        return s ? `?${s}` : "";
+      })()}`,
     ),
   backupFolder: (body: {
     folder_id: string | null;

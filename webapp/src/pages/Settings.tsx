@@ -109,7 +109,9 @@ export default function Settings() {
             </div>
             {status.expiry && (
               <div className="text-zinc-500">
-                Token expires: {status.expiry}
+                Access token valid until {status.expiry} — refreshes
+                automatically, no action needed. Reconnect only if the status
+                above flips to "Not authenticated".
               </div>
             )}
             <div className="text-zinc-500">Token file: {status.token_path}</div>

@@ -196,17 +196,24 @@ export default function Onboarding() {
                 <strong>Google Drive API</strong>.
               </li>
               <li>
-                APIs &amp; Services → OAuth consent screen — User type{" "}
-                <strong>External</strong>, add your own account under{" "}
-                <strong>Test users</strong>.
+                Google Auth Platform → Branding — fill app name + support email
+                (one-time registration; "Get Started" if prompted).
               </li>
               <li>
-                APIs &amp; Services → Credentials → Create Credentials → OAuth
-                client ID — Application type <strong>Desktop app</strong>.
+                Google Auth Platform → Audience — User type{" "}
+                <strong>External</strong> (stay in Testing). Project owners
+                already have access — only add <em>other</em> Gmails under{" "}
+                <strong>Test users</strong>; adding yourself errors out and is
+                safe to skip.
               </li>
               <li>
-                Copy the generated Client ID and Client Secret — you'll paste
-                them next.
+                Google Auth Platform → Clients → Create Client — Application
+                type <strong>Desktop app</strong> (leave the AI-agent checkbox
+                off for personal use).
+              </li>
+              <li>
+                Copy the generated Client ID and Client Secret immediately — the
+                secret is shown only once. Paste them on the Connect step next.
               </li>
             </ol>
           </div>
