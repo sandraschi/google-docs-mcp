@@ -304,8 +304,13 @@ async def api_documents(request: Request) -> JSONResponse:
     tool surface can never drift apart."""
     query = request.query_params.get("query")
     cursor = request.query_params.get("cursor")
+    limit_raw = request.query_params.get("limit", "25")
+    try:
+        limit = max(1, min(int(limit_raw), 100))
+    except ValueError:
+        limit = 25
     result = await google_drive(
-        operation="search" if query else "list_files", query=query, cursor=cursor, limit=25
+        operation="search" if query else "list_files", query=query, cursor=cursor, limit=limit
     )
     return JSONResponse(result)
 
@@ -313,7 +318,13 @@ async def api_documents(request: Request) -> JSONResponse:
 async def api_documents_browse(request: Request) -> JSONResponse:
     """Folder-aware listing for the Documents page's folder navigator."""
     folder_id = request.query_params.get("folder_id") or None
-    result = await google_drive(operation="browse", folder_id=folder_id)
+    cursor = request.query_params.get("cursor")
+    limit_raw = request.query_params.get("limit", "25")
+    try:
+        limit = max(1, min(int(limit_raw), 100))
+    except ValueError:
+        limit = 25
+    result = await google_drive(operation="browse", folder_id=folder_id, cursor=cursor, limit=limit)
     return JSONResponse(result)
 
 
