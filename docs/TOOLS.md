@@ -97,6 +97,13 @@ pass); a document trashed on Drive does not delete the local file (moved to `_re
 instead); a file changed on both sides is a conflict (local edit renamed with a timestamp
 suffix and kept, Drive's version becomes canonical).
 
+## `google_docs_stitch(operation, ...)`
+Stitcher: `preview` lists candidate sources (recent N, search, or ids) for
+free; `stitch` exports them as text, dedupes, and writes a NEW Google Doc
+with titled sections + source links. The iPad flow (many small saved docs →
+one compendium) automated behind one button — see the Stitcher webapp page
+and `POST /api/stitch[/preview]`.
+
 ## `google_docs_mcp_help()`
 
 Static markdown reference of the tool surface. No network calls, no parameters.
