@@ -19,6 +19,7 @@ from fastmcp.server.providers.skills import SkillsDirectoryProvider
 
 from google_docs_mcp import __version__
 from google_docs_mcp.config import settings
+from google_docs_mcp.stitch import google_docs_stitch
 from google_docs_mcp.tools.auth_tool import google_docs_auth
 from google_docs_mcp.tools.browse_app import show_google_drive_folder_app
 from google_docs_mcp.tools.docs_tool import google_docs
@@ -77,6 +78,9 @@ mcp.tool(
 )(google_docs_convert_advanced)
 mcp.tool(annotations={"readOnlyHint": False, "destructiveHint": False, "openWorldHint": True})(
     google_docs_sync
+)
+mcp.tool(annotations={"readOnlyHint": False, "destructiveHint": False, "openWorldHint": True})(
+    google_docs_stitch
 )
 mcp.tool(app=True, annotations={"readOnlyHint": True, "idempotentHint": True, "openWorldHint": False})(
     show_google_docs_status_app

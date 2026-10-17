@@ -102,6 +102,31 @@ async def api_dashboard(_request: Request) -> JSONResponse:
     )
 
 
+async def api_recent(_request: Request) -> JSONResponse:
+    """Most recently modified Drive files (for the dashboard recents list).
+
+    Auth-guarded: unauthenticated callers get needs_auth instead of an error
+    page, so the dashboard renders an onboarding cue, not a traceback.
+    """
+    try:
+        svc = get_drive_service()
+    except (NotAuthenticatedError, Exception):
+        return JSONResponse({"items": [], "needs_auth": True})
+    try:
+        res = (
+            svc.files()
+            .list(
+                pageSize=8,
+                orderBy="modifiedTime desc",
+                fields="files(id,name,mimeType,modifiedTime,webViewLink)",
+            )
+            .execute()
+        )
+        return JSONResponse({"items": res.get("files", []), "needs_auth": False})
+    except Exception as exc:
+        return JSONResponse({"items": [], "needs_auth": False, "error": str(exc)[:200]})
+
+
 async def api_tools(_request: Request) -> JSONResponse:
     tools = await mcp.list_tools()
     return JSONResponse(
@@ -296,6 +321,51 @@ async def api_onboarding_client(request: Request) -> JSONResponse:
 async def api_onboarding_client_clear(_request: Request) -> JSONResponse:
     cleared = settings.clear_local_client()
     return JSONResponse({"success": True, "cleared": cleared, "data": asdict(oauth.get_status())})
+
+
+async def api_stitch_preview(request: Request) -> JSONResponse:
+    """POST — cheap pre-flight: which docs would be stitched (no bodies, no new doc)."""
+    from google_docs_mcp.stitch import _preview_sources
+
+    body = await request.json()
+    try:
+        drive = get_drive_service()
+    except (NotAuthenticatedError, NotConfiguredError) as exc:
+        return JSONResponse(
+            {"success": False, "error": str(exc), "error_type": "not_authenticated"}, status_code=401
+        )
+    try:
+        sources = await run_in_threadpool(
+            _preview_sources,
+            drive,
+            str(body.get("mode", "recent")),
+            int(body.get("count", 10)),
+            body.get("query"),
+            body.get("ids"),
+        )
+        return JSONResponse({"success": True, "data": {"sources": sources}})
+    except Exception as exc:
+        return JSONResponse(
+            {"success": False, "error": str(exc)[:300], "error_type": "api_error"}, status_code=502
+        )
+
+
+async def api_stitch(request: Request) -> JSONResponse:
+    """POST — stitch sources into a NEW Google Doc. Returns its link."""
+    from google_docs_mcp.stitch import stitch_docs
+
+    body = await request.json()
+    result = await run_in_threadpool(
+        stitch_docs,
+        str(body.get("mode", "recent")),
+        int(body.get("count", 10)),
+        body.get("query"),
+        body.get("ids"),
+        body.get("title"),
+        bool(body.get("skip_duplicates", True)),
+    )
+    status_code = 200 if result.get("success") else 502
+    return JSONResponse(result, status_code=status_code)
 
 
 async def api_documents(request: Request) -> JSONResponse:
@@ -560,6 +630,9 @@ app = Starlette(
         Route("/api/health", api_health),
         Route("/api/capabilities", api_capabilities),
         Route("/api/dashboard", api_dashboard),
+        Route("/api/recent", api_recent),
+        Route("/api/stitch/preview", api_stitch_preview, methods=["POST"]),
+        Route("/api/stitch", api_stitch, methods=["POST"]),
         Route("/api/tools", api_tools),
         Route("/api/skills", api_skills),
         Route("/api/skills/{name}", api_skill_content),
