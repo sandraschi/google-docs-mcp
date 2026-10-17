@@ -46,3 +46,39 @@ async def test_unknown_operation(monkeypatch):
     result = await google_docs_auth(operation="bogus")  # type: ignore[arg-type]
     assert result["success"] is False
     assert result["error_type"] == "validation"
+
+
+async def test_status_reports_weekly_grant_expiry(configured_env, monkeypatch):
+    """invalid_grant on refresh (the weekly Testing-mode death) surfaces as
+    grant_expired, not generic unauthenticated. Verified live 2026-10-17."""
+    import json
+
+    from google.auth.exceptions import RefreshError
+
+    from google_docs_mcp import oauth
+
+    configured_env.token_path.parent.mkdir(parents=True, exist_ok=True)
+    configured_env.token_path.write_text(
+        json.dumps(
+            {
+                "token": "dead",
+                "refresh_token": "dead",
+                "token_uri": "https://oauth2.googleapis.com/token",
+                "client_id": "test-client-id.apps.googleusercontent.com",
+                "client_secret": "test-client-secret",
+                "scopes": oauth.settings.scopes,
+                "expiry": "2020-01-01T00:00:00",
+            }
+        ),
+        encoding="utf-8",
+    )
+
+    def _dead_refresh(self, request):
+        raise RefreshError("invalid_grant: Token has been expired or revoked.")
+
+    monkeypatch.setattr("google.oauth2.credentials.Credentials.refresh", _dead_refresh)
+    result = await google_docs_auth(operation="status")
+    assert result["success"] is True
+    assert result["data"]["authenticated"] is False
+    assert result["data"]["grant_expired"] is True
+    assert "7 days" in result["message"]

@@ -23,7 +23,7 @@ list_revisions | list_comments | add_comment | reply_comment |
 resolve_comment.
 
 ## Typical flow
-1. google_docs_auth(operation="start_oauth")   — once per machine
+1. google_docs_auth(operation="start_oauth")   — weekly (Testing-mode grants expire ~7 days; re-run on grant_expired)
 2. google_docs(operation="create", title="...")
 3. google_docs(operation="append_text", document_id=..., text="...")
 4. google_drive(operation="share", file_id=..., email="...", role="writer")

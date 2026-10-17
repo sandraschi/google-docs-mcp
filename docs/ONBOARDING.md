@@ -57,12 +57,15 @@ there is no autonomous scheduling or background posting.
 - **"This app isn't verified"** warning: normal for a personal OAuth client in Testing
   status. Click **Advanced → Go to google-docs-mcp (unsafe)** — this is your own app, not
   a third party.
-- **Testing-mode consent screens expire access after 7 days** unless your Google account is
-  added under **Test users**, or you publish the consent screen (no Google review required
-  for the scopes this server uses, since they're not "sensitive"/"restricted" in Google's
-  classification... but Docs/Drive full-access scopes ARE sensitive and DO trigger a
-  verification requirement if you publish to production with >100 users. For personal,
-  single-user use, stay in Testing + add yourself as a test user — no review needed).
+- **Testing-mode grants die after ~7 days — verified live** (grant minted
+  2026-10-10, refresh answered `invalid_grant` on 2026-10-17). Being on the
+  **Test users** list does NOT exempt you — it is the precondition for access
+  at all. When it happens the status endpoint reports `grant_expired: true`
+  (not "misconfigured") and the webapp offers a one-click reconnect.
+  Publishing to Production would end the cycle but `auth/drive` is a
+  restricted scope: production with >100 users triggers Google's verification
+  gauntlet (security assessment included). For personal single-user use the
+  accepted cost is one browser click per week — stay in Testing.
 - **Wrong client type**: if you create a "Web application" OAuth client instead of "Desktop
   app", `start_oauth` will fail with a redirect URI mismatch. Delete it and create a Desktop
   app client instead.

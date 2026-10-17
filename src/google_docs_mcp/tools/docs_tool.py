@@ -240,7 +240,7 @@ async def google_docs(
     ```
 
     Notes:
-    - Requires OAuth first — call `google_docs_auth(operation="start_oauth")` once per machine.
+    - Requires OAuth first — call `google_docs_auth(operation="start_oauth")` (re-run weekly: Testing-mode grants expire).
     - Indices are UTF-16 code unit offsets into the document body, as returned by `get`/
       `get_structure` — always re-fetch indices after an edit, since they shift.
     """

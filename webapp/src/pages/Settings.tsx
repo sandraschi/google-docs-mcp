@@ -17,6 +17,7 @@ type AuthStatus = {
   token_path: string;
   expiry: string | null;
   client_source?: string;
+  grant_expired?: boolean;
 };
 
 export default function Settings() {
@@ -105,8 +106,22 @@ export default function Settings() {
               ) : (
                 <XCircle size={16} className="text-red-500" />
               )}
-              {status.authenticated ? "Authenticated" : "Not authenticated"}
+              {status.authenticated
+                ? "Authenticated"
+                : status.grant_expired
+                  ? "Session expired (weekly Google grant)"
+                  : "Not authenticated"}
             </div>
+            {status.grant_expired && (
+              <div
+                className="text-amber-400"
+                data-testid="settings-grant-expired"
+              >
+                Google Testing-mode grants die after ~7 days — nothing is
+                misconfigured. Hit Connect Google Account below to sign in again
+                (one click, then back to work).
+              </div>
+            )}
             {status.expiry && (
               <div className="text-zinc-500">
                 Access token valid until {status.expiry} — refreshes
@@ -125,7 +140,11 @@ export default function Settings() {
                   onClick={startOAuth}
                   className="rounded-lg bg-amber-500 px-4 py-2 text-sm font-medium text-zinc-950 hover:bg-amber-400 disabled:opacity-40"
                 >
-                  {starting ? "Opening browser…" : "Connect Google Account"}
+                  {starting
+                    ? "Opening browser…"
+                    : status.grant_expired
+                      ? "Reconnect Google Account"
+                      : "Connect Google Account"}
                 </button>
                 <button
                   type="button"

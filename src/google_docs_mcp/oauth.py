@@ -34,6 +34,16 @@ class NotAuthenticatedError(RuntimeError):
     """Raised when no valid token exists and the caller must run start_oauth."""
 
 
+class GrantExpiredError(NotAuthenticatedError):
+    """The cached grant is dead: refresh answered invalid_grant.
+
+    This is the normal weekly end-state for a Google Cloud OAuth client in
+    Testing publish status (refresh tokens expire after ~7 days; verified
+    live 2026-10-10 -> 2026-10-17). Re-running start_oauth is the fix -
+    nothing is misconfigured.
+    """
+
+
 @dataclass
 class AuthStatus:
     configured: bool
@@ -42,6 +52,7 @@ class AuthStatus:
     token_path: str
     client_source: str
     expiry: str | None = None
+    grant_expired: bool = False
 
 
 def _client_config() -> dict:
@@ -83,6 +94,14 @@ def load_credentials() -> Credentials | None:
             creds.refresh(Request())
             _save_credentials(creds)
         except RefreshError as exc:
+            # invalid_grant = the grant itself is dead (weekly testing-mode
+            # expiry), not a transient failure. Surface it distinctly so
+            # callers stop reporting "not configured" for a healthy setup.
+            if "invalid_grant" in str(exc).lower():
+                raise GrantExpiredError(
+                    "Google grant expired (Testing-mode refresh tokens die after "
+                    "~7 days). Re-run start_oauth - nothing is misconfigured."
+                ) from exc
             logger.warning("Token refresh failed: %s", exc)
             return None
 
@@ -121,9 +140,12 @@ def revoke() -> bool:
 def get_status() -> AuthStatus:
     configured = settings.is_configured
     creds: Credentials | None = None
+    grant_expired = False
     if configured:
         try:
             creds = load_credentials()
+        except GrantExpiredError:
+            grant_expired = True
         except NotConfiguredError:
             creds = None
     expiry = None
@@ -136,6 +158,7 @@ def get_status() -> AuthStatus:
         token_path=str(settings.token_path),
         client_source=settings.client_source,
         expiry=expiry,
+        grant_expired=grant_expired,
     )
 
 

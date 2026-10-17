@@ -2,6 +2,13 @@
 
 ## [Unreleased]
 
+- Weekly-grant truth (verified live: grant minted 2026-10-10 died `invalid_grant`
+  2026-10-17): new `GrantExpiredError`, `grant_expired` on the status shape,
+  honest "re-run start_oauth, nothing misconfigured" messaging; Settings +
+  Onboarding show amber expired state with Reconnect buttons; ONBOARDING 7-day
+  paragraph rewritten (test-user listing does NOT exempt); "once per machine"
+  claims fixed; regression test with fake dead grant (6/6 auth tests green)
+
 - Assfix 2026-10-03 (first full pass): `google_shutdown` tool + `GET /api/capabilities`; hermetic OAuth tests (local-client fallback neutralization, conftest autouse fixture); `Resource`→honest-`Any` (50 false pyright errors); Prefab 0.20 compat shims; ExportFormat/upload/oauth/docs-tool typing fixes (pyright 86 → 0); unified dev deps; pre-commit + hook
 
 - Standard-conformance pass (TOOL_DESIGN_STANDARDS.md audit): `browse` now paginates its docs

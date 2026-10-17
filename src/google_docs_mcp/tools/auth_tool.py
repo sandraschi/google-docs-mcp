@@ -58,9 +58,18 @@ async def google_docs_auth(
     """
     if operation == "status":
         status = oauth.get_status()
+        if status.authenticated:
+            message = "Authenticated."
+        elif status.grant_expired:
+            message = (
+                "Grant expired (Google Testing-mode refresh tokens die after ~7 days). "
+                "Re-run start_oauth - nothing is misconfigured."
+            )
+        else:
+            message = "Not authenticated."
         return {
             "success": True,
-            "message": "Authenticated." if status.authenticated else "Not authenticated.",
+            "message": message,
             "data": asdict(status),
         }
 

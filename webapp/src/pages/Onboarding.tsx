@@ -15,6 +15,7 @@ type AuthStatus = {
   authenticated: boolean;
   client_source: string;
   expiry: string | null;
+  grant_expired?: boolean;
 };
 
 const STEPS = [
@@ -243,7 +244,9 @@ export default function Onboarding() {
                   className="flex items-center gap-2 rounded-lg bg-amber-500 px-4 py-2 text-sm font-medium text-zinc-950 hover:bg-amber-400 disabled:opacity-50"
                 >
                   {connecting && <Loader2 size={16} className="animate-spin" />}
-                  Connect Google Account
+                  {status?.grant_expired
+                    ? "Reconnect Google Account"
+                    : "Connect Google Account"}
                 </button>
               </div>
             ) : (
@@ -296,6 +299,15 @@ export default function Onboarding() {
               <p className="text-sm text-zinc-400">
                 Sanity check passed — try asking Claude: "Create a test Google
                 Doc."
+              </p>
+            ) : status?.grant_expired ? (
+              <p
+                className="text-sm text-amber-400"
+                data-testid="onboarding-grant-expired"
+              >
+                Your weekly Google grant expired (Testing-mode refresh tokens
+                die after ~7 days — verified, not a bug in this app). Go back to
+                Connect and click the button to sign in again.
               </p>
             ) : (
               <p className="text-sm text-zinc-400">
