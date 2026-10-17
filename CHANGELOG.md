@@ -2,6 +2,12 @@
 
 ## [Unreleased]
 
+- Stitcher page + `google_docs_stitch` tool + `POST /api/stitch[/preview]`:
+  recent/search/ids source picking, duplicate-aware compendium written as a
+  NEW Google Doc (chunked appends), result link + skip report. Dashboard also
+  rebuilt (hero + CTAs, 6 live KPIs, recents via new auth-guarded
+  `/api/recent`). Verified live: 4 recents → 2 unique stitched.
+
 - Weekly-grant truth (verified live: grant minted 2026-10-10 died `invalid_grant`
   2026-10-17): new `GrantExpiredError`, `grant_expired` on the status shape,
   honest "re-run start_oauth, nothing misconfigured" messaging; Settings +
