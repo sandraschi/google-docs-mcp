@@ -72,6 +72,20 @@ Always call `google_docs_auth(operation="status")` before anything else. If
   `cursor` from a previous response's `data.next_cursor` to continue; stop when
   `data.has_more` is `false`.
 
+## File organization (often-missed ops)
+
+- `get_metadata(file_id)` — cheap existence/ownership check before acting;
+  returns name, mimeType, owners, timestamps, webViewLink.
+- `create_folder(name, folder_id?)` / `move(file_id, new_parent_id)` /
+  `rename(file_id, name)` / `copy(file_id, name?, folder_id?)` — organize
+  without re-uploading content.
+- `untrash(file_id)` — reverses `trash`; `delete_permanently` has no undo.
+- `list_permissions(file_id)` / `revoke_permission(file_id, permission_id)` —
+  audit who has access; pair with `share` for grant/revoke round-trips.
+- Example chain: `search` → `get_metadata` to confirm hit →
+  `copy` to backup folder → `move`/`rename` original →
+  `list_permissions` to verify sharing survived the move.
+
 ## Comments
 
 Google Docs comments are a Drive API concept, not a Docs API one — use
