@@ -26,6 +26,7 @@ def _neutralize_local_oauth_client(monkeypatch, tmp_path):
     the fallback set GOOGLE_DOCS_MCP_LOCAL_CONFIG_PATH themselves afterwards.
     """
     monkeypatch.setenv("GOOGLE_DOCS_MCP_LOCAL_CONFIG_PATH", str(tmp_path / "none.json"))
+    monkeypatch.setenv("GOOGLE_DOCS_MCP_TOKEN_PATH", str(tmp_path / "token.json"))
 
 
 @pytest.fixture
